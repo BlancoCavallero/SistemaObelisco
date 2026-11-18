@@ -150,3 +150,49 @@ class StockListView(generics.ListAPIView):
             for producto in productos
         ]
         return Response(filas)
+
+
+class HistorialMovimientosView(APIView):
+    """Every movement of one product, newest first, with its running balance.
+
+    This is the answer to "why are there 3 and not 7". Without it, a stock adjustment
+    is a magic number and the system loses trust the first time something is missing.
+    """
+
+    def get(self, _request, pk):
+        from django.shortcuts import get_object_or_404
+
+        from catalogo.models import Producto
+
+        producto = get_object_or_404(Producto, pk=pk)
+        movimientos = producto.movimientos.select_related("usuario").order_by("fecha", "id")
+
+        acumulado = 0
+        filas = []
+        for movimiento in movimientos:
+            acumulado += movimiento.cantidad
+            filas.append(
+                {
+                    "id": movimiento.pk,
+                    "fecha": movimiento.fecha,
+                    "tipo": movimiento.tipo,
+                    "cantidad": movimiento.cantidad,
+                    "estado": movimiento.estado,
+                    "motivo": movimiento.motivo,
+                    "referencia": movimiento.referencia,
+                    "usuario": movimiento.usuario.get_full_name() or movimiento.usuario.username,
+                    "saldo_acumulado": acumulado,
+                }
+            )
+
+        return Response(
+            {
+                "producto": {
+                    "id": producto.pk,
+                    "id_visible": producto.id_visible,
+                    "nombre": producto.nombre,
+                },
+                "total": acumulado,
+                "movimientos": list(reversed(filas)),
+            }
+        )
