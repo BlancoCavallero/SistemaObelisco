@@ -31,6 +31,4 @@ def tipo(categoria):
 
 @pytest.fixture
 def producto(tipo):
-    return Producto.objects.create(
-        tipo=tipo, color="gris", alto_cm=85, ancho_cm=90, largo_cm=180
-    )
+    return Producto.objects.create(tipo=tipo, color="gris", alto_cm=85, ancho_cm=90, largo_cm=180)

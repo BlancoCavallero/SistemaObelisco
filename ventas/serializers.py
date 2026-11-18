@@ -72,9 +72,7 @@ class VentaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Una venta necesita al menos una linea.")
 
         faltantes = [
-            linea["producto"].nombre
-            for linea in lineas
-            if linea["producto"].precio_venta() is None
+            linea["producto"].nombre for linea in lineas if linea["producto"].precio_venta() is None
         ]
         if faltantes:
             raise serializers.ValidationError(

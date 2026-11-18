@@ -142,9 +142,7 @@ def test_stock_refleja_la_suma_de_movimientos(cliente, usuario, producto):
         (3, "entrada_inventario_inicial"),
         (-4, "venta"),
     ]:
-        Movimiento.objects.create(
-            producto=producto, usuario=usuario, cantidad=cantidad, tipo=tipo
-        )
+        Movimiento.objects.create(producto=producto, usuario=usuario, cantidad=cantidad, tipo=tipo)
 
     r = cliente.get("/api/stock/")
 
@@ -155,9 +153,7 @@ def test_stock_refleja_la_suma_de_movimientos(cliente, usuario, producto):
 
 
 def test_stock_no_incluye_productos_inactivos(cliente, usuario, producto):
-    Movimiento.objects.create(
-        producto=producto, usuario=usuario, cantidad=5, tipo="entrada_compra"
-    )
+    Movimiento.objects.create(producto=producto, usuario=usuario, cantidad=5, tipo="entrada_compra")
     producto.activo = False
     producto.save()
 

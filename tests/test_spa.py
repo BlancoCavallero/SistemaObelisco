@@ -5,9 +5,7 @@ import pytest
 
 @pytest.fixture
 def con_build(tmp_path, settings):
-    (tmp_path / "index.html").write_text(
-        '<!doctype html><div id="raiz"></div>', encoding="utf-8"
-    )
+    (tmp_path / "index.html").write_text('<!doctype html><div id="raiz"></div>', encoding="utf-8")
     settings.FRONTEND_DIST = tmp_path
     return tmp_path
 

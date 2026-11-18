@@ -59,9 +59,7 @@ class Venta(models.Model):
         return f"Venta {self.pk} por ${self.total}"
 
     def subtotal(self):
-        return sum(
-            (linea.subtotal() for linea in self.lineas.all()), start=Decimal("0.00")
-        )
+        return sum((linea.subtotal() for linea in self.lineas.all()), start=Decimal("0.00"))
 
 
 class LineaVenta(models.Model):
@@ -84,3 +82,45 @@ class LineaVenta(models.Model):
 
     def subtotal(self):
         return Decimal(self.cantidad) * Decimal(self.precio_unitario)
+
+
+class TipoCuentaMovimiento(models.TextChoices):
+    CARGO = "cargo", "Cargo"
+    PAGO = "pago", "Pago"
+    AJUSTE = "ajuste", "Ajuste"
+
+
+class CuentaMovimiento(models.Model):
+    """One row per charge or payment. The balance is never stored.
+
+    A sale in installments creates one charge per installment, so "who owes what and
+    when" is answered by the same rows that answer "how much does this customer owe".
+    """
+
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.PROTECT, related_name="cuenta_movimientos"
+    )
+    tipo = models.CharField(max_length=16, choices=TipoCuentaMovimiento.choices)
+    monto = models.DecimalField(max_digits=14, decimal_places=2)
+    vencimiento = models.DateField(null=True, blank=True)
+    venta = models.ForeignKey(
+        Venta, on_delete=models.PROTECT, null=True, blank=True, related_name="cuenta_movimientos"
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="cuenta_movimientos"
+    )
+    motivo = models.CharField(max_length=200, blank=True, default="")
+    fecha = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-fecha", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(monto__gt=0), name="cuenta_movimiento_monto_positivo"
+            )
+        ]
+        verbose_name = "movimiento de cuenta"
+        verbose_name_plural = "movimientos de cuenta"
+
+    def __str__(self):
+        return f"{self.tipo} ${self.monto} de {self.cliente_id}"
