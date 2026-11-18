@@ -69,6 +69,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Calculate the next semver from commits.")
     parser.add_argument("--tags", default="", help="All known tags, space or newline separated.")
     parser.add_argument("--last-tag", default="", help="Latest release tag, if any.")
+    parser.add_argument(
+        "--head-already-tagged",
+        action="store_true",
+        help="Reuse the last version instead of bumping: the release for this commit exists.",
+    )
     parser.add_argument("--commits-file", help="File with one commit message per blank line.")
     parser.add_argument("--message", action="append", default=[], help="A commit message.")
     args = parser.parse_args(argv)
@@ -79,6 +84,10 @@ def main(argv=None):
         actual = ultima_version(args.tags.split())
     else:
         actual = None
+
+    if args.head_already_tagged and actual:
+        print(actual)
+        return 0
 
     mensajes = list(args.message)
     if args.commits_file:

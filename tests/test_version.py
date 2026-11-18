@@ -1,5 +1,8 @@
 """Version bump rules. The release workflow depends on this being deterministic."""
 
+import contextlib
+import io
+
 import pytest
 
 from scripts.version import next_version, ultima_version
@@ -40,3 +43,24 @@ def test_ultima_version_ignora_tags_que_no_son_semver():
 
 def test_ultima_version_sin_tags_devuelve_none():
     assert ultima_version(["nightly", "latest"]) is None
+
+
+def test_si_el_commit_ya_tiene_tag_no_sube_la_version():
+    """Re-ejecutar el release no puede inventar un tag nuevo."""
+    from scripts.version import main
+
+    salida = io.StringIO()
+    with contextlib.redirect_stdout(salida):
+        main(["--last-tag", "v0.2.0", "--head-already-tagged"])
+
+    assert salida.getvalue().strip() == "0.2.0"
+
+
+def test_sin_el_flag_el_mismo_caso_sube_patch():
+    from scripts.version import main
+
+    salida = io.StringIO()
+    with contextlib.redirect_stdout(salida):
+        main(["--last-tag", "v0.2.0"])
+
+    assert salida.getvalue().strip() == "0.2.1"
