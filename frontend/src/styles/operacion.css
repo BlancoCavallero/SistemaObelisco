@@ -1,0 +1,134 @@
+/* Superficie de operacion: cero animacion. En el mostrador, la animacion es el enemigo. */
+
+.estrecho { max-width: 34rem; }
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--tenue);
+}
+
+.link-fino {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--tenue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 0.85rem;
+}
+
+.formulario {
+  display: grid;
+  gap: 1rem;
+  padding: 0 0 1.5rem;
+}
+
+.formulario label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--tenue);
+}
+
+.formulario input,
+.formulario select {
+  font: inherit;
+  color: var(--tinta);
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 0.7rem 0.75rem;
+  min-height: 2.75rem;
+  width: 100%;
+}
+
+.medidas {
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 0.85rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.medidas legend {
+  font-size: 0.78rem;
+  color: var(--tenue);
+  padding: 0 0.35rem;
+}
+
+button.principal,
+button.secundario {
+  font: inherit;
+  min-height: 2.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--tinta);
+  padding: 0.7rem 1rem;
+}
+
+button.principal {
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+button.secundario {
+  background: transparent;
+  color: var(--tinta);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.resultado { padding-bottom: 1.25rem; }
+
+.resultado h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.6rem;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.opcion {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+.opcion span { color: var(--tenue); font-size: 0.78rem; }
+
+.opcion.activa {
+  border-color: var(--tinta);
+  border-width: 2px;
+}
+
+.exito,
+.error {
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.exito { background: #e8f0e6; border: 1px solid #c8dcc2; }
+.error { background: #f7e6e4; border: 1px solid #e3c3bf; }

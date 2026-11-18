@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { traerCatalogo, type Catalogo, type Producto } from "../api";
+import { api, type Catalogo, type Producto } from "../api";
 
 function Tarjeta({ producto, indice }: { producto: Producto; indice: number }) {
   const alt = `${producto.tipo} ${producto.color}, ${producto.medidas} cm`;
@@ -34,8 +34,9 @@ export default function CatalogoPagina() {
     setCargando(true);
     setError(null);
 
-    traerCatalogo(categoria)
-      .then((datos) => {
+    api
+      .catalogo(categoria)
+      .then((datos: Catalogo) => {
         if (vigente) setCatalogo(datos);
       })
       .catch((causa: Error) => {
