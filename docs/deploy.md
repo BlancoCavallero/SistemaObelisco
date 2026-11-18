@@ -61,7 +61,7 @@ Settings → Secrets and variables → Actions → **Secrets**:
 
 | Secret | De donde sale |
 |---|---|
-| `DJANGO_SECRET_KEY` | `python -c "import secrets;print(secrets.token_urlsafe(64))"` |
+| `DJANGO_SECRET_KEY` | `python -c "import secrets;print(secrets.token_urlsafe(64))"` · *el nombre del secret es DJANGO_SECRET_KEY, pero la app lo lee como `SECRET_KEY`; el workflow hace el mapeo* |
 | `DATABASE_URL` | Neon, con pooler |
 | `DATABASE_URL_DIRECT` | Neon, sin pooler |
 | `ALLOWED_HOSTS` | El dominio de Cloud Run, **despues del primer deploy** |

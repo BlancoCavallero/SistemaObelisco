@@ -114,7 +114,7 @@ jobs:
           image: ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
           env_vars: |
             APP_VERSION=${{ needs.version.outputs.version }}
-            DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+            SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
             CSRF_TRUSTED_ORIGINS=${{ secrets.CSRF_TRUSTED_ORIGINS }}
