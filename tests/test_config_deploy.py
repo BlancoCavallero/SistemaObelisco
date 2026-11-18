@@ -33,7 +33,13 @@ LEIDAS_POR_LA_APP = {
 }
 
 # Variables que usa el pipeline, no la aplicacion (pg_dump necesita la conexion directa).
-SOLO_CI = {"DATABASE_URL_DIRECT"}
+SOLO_CI = {
+    "DATABASE_URL_DIRECT",
+    "GITHUB_TOKEN",
+    "GCP_SERVICE_ACCOUNT",
+    "GCP_WORKLOAD_IDENTITY_PROVIDER",
+    "GH_TOKEN",  # lo usa gh dentro del job, no la app
+}
 
 
 @pytest.mark.parametrize("workflow", [WORKFLOW, BACKUP])
