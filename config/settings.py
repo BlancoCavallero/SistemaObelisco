@@ -110,10 +110,16 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 90
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
+# Vite already hashes its output. A manifest storage would hash it a second time and the
+# index.html reference would break, because Django never rewrites that file.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
+
+FRONTEND_DIST = Path(env("FRONTEND_DIST", BASE_DIR / "frontend" / "dist"))
+if (FRONTEND_DIST / "assets").is_dir():
+    STATICFILES_DIRS = [FRONTEND_DIST]
 
 R2_ACCOUNT_ID = env("R2_ACCOUNT_ID")
 if R2_ACCOUNT_ID:
