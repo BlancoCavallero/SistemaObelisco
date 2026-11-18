@@ -70,6 +70,11 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
+          # Un tag anotado necesita autor. El runner arranca sin identidad configurada y
+          # `git tag -a` falla con "empty ident name".
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             echo "El tag $TAG ya existe: se reutiliza"
           else
