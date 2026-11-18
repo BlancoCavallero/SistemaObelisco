@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+.env
+staticfiles/
+media/
+node_modules/
+frontend/dist/
+.ruff_cache/
+.pytest_cache/
+
+# Catalogos de fabrica: material de referencia de 100+ MB, no va al repo.
+# Siguen en el arbol de trabajo, ignorados.
+docs/catalogos/
