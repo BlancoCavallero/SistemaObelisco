@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -79,13 +79,22 @@ TEMPLATES = [
 ]
 
 
-def database_config():
-    """Parse DATABASE_URL, falling back to SQLite so tests run without Docker."""
-    url = env("DATABASE_URL")
-    if not url:
-        return {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
+def parse_database_url(url):
+    """Turn a Postgres URL into a Django DATABASES entry.
+
+    The query string is not decoration. Neon hands out `?sslmode=require&
+    channel_binding=require`, and dropping it silently downgrades the connection:
+    psycopg defaults to sslmode=prefer, which falls back to plaintext if the server
+    allows it.
+    """
     parsed = urlparse(url)
-    return {
+    opciones = {}
+    for clave in ("sslmode", "channel_binding"):
+        valor = parse_qs(parsed.query).get(clave)
+        if valor:
+            opciones[clave] = valor[-1]
+
+    configuracion = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": parsed.path.lstrip("/") or "obelisco",
         "USER": parsed.username or "",
@@ -93,6 +102,45 @@ def database_config():
         "HOST": parsed.hostname or "",
         "PORT": str(parsed.port or ""),
         "CONN_MAX_AGE": 0,
+    }
+    if opciones:
+        configuracion["OPTIONS"] = opciones
+    return configuracion
+
+
+def database_config():
+    """Parse DATABASE_URL, falling back to SQLite so tests run without Docker."""
+    url = env("DATABASE_URL")
+    if not url:
+        return {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
+    return parse_database_url(url)
+
+
+def s3_config(entorno):
+    """Storage for a generic S3-compatible endpoint: Cloudflare R2 or Neon Storage.
+
+    Both speak S3, so the only difference is the endpoint and the credential names.
+    """
+    endpoint = (
+        f"https://{entorno['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
+        if entorno.get("R2_ACCOUNT_ID")
+        else entorno.get("AWS_ENDPOINT_URL_S3")
+    )
+    bucket = entorno.get("AWS_STORAGE_BUCKET_NAME") or entorno.get("R2_BUCKET")
+    clave = entorno.get("R2_ACCESS_KEY_ID") or entorno.get("AWS_ACCESS_KEY_ID")
+    secreto = entorno.get("R2_SECRET_ACCESS_KEY") or entorno.get("AWS_SECRET_ACCESS_KEY")
+
+    if not (endpoint and bucket and clave and secreto):
+        return None
+
+    return {
+        "AWS_S3_ENDPOINT_URL": endpoint,
+        "AWS_STORAGE_BUCKET_NAME": bucket,
+        "AWS_ACCESS_KEY_ID": clave,
+        "AWS_SECRET_ACCESS_KEY": secreto,
+        "AWS_S3_REGION_NAME": entorno.get("AWS_REGION") or "auto",
+        "AWS_QUERYSTRING_AUTH": True,
+        "AWS_DEFAULT_ACL": None,
     }
 
 
@@ -132,14 +180,10 @@ FRONTEND_DIST = Path(env("FRONTEND_DIST", BASE_DIR / "frontend" / "dist"))
 if (FRONTEND_DIST / "assets").is_dir():
     STATICFILES_DIRS = [FRONTEND_DIST]
 
-R2_ACCOUNT_ID = env("R2_ACCOUNT_ID")
-if R2_ACCOUNT_ID:
-    AWS_ACCESS_KEY_ID = env("R2_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = env("R2_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = env("R2_BUCKET", "obelisco-media")
-    AWS_S3_ENDPOINT_URL = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-    AWS_S3_REGION_NAME = "auto"
-    AWS_QUERYSTRING_AUTH = True
+_almacenamiento = s3_config(os.environ)
+if _almacenamiento:
+    for _clave, _valor in _almacenamiento.items():
+        globals()[_clave] = _valor
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

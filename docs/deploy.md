@@ -23,25 +23,56 @@ El contenedor se probo localmente contra Postgres 16 antes de escribir esta guia
 
 Son cuentas y secretos. El agente no las crea ni las recibe.
 
-### 1. Base de datos (Neon, gratis)
+### 1. Base de datos (Neon, gratis) — verificado contra el servidor real
 
 1. Crear un proyecto en <https://neon.tech>.
 2. Copiar **dos** cadenas de conexion:
    - la del **pooler** (el host contiene `-pooler`) → `DATABASE_URL`
    - la **directa** → `DATABASE_URL_DIRECT`
 
+> **No uses `neon init` ni `neon deploy`.** Esas instrucciones son para una app Node con
+> `neon.ts`. Este proyecto es Django sobre Cloud Run y crea su propio esquema con
+> migraciones al arrancar.
+
+La cadena trae `?sslmode=require&channel_binding=require`. **Esos parametros se conservan:**
+el parser los pasa como `OPTIONS` a psycopg. Perderlos degradaria la conexion a `prefer`,
+que acepta texto plano si el servidor lo permite.
+
+Verificado contra el servidor real: Neon corre **PostgreSQL 18.7** y Django conecta con
+`sslmode=require` y `channel_binding=require` aplicados.
+
 > Las dos son necesarias. `pg_dump` no funciona a traves del pooler y el backup fallaria
 > en silencio.
 
-### 2. Imagenes y backups (Cloudflare R2, gratis)
+### 2. Imagenes y backups — dos opciones, ambas S3
 
-1. Activar R2 en el panel de Cloudflare. **Pide tarjeta aunque el plan sea gratuito.**
-2. Crear un bucket `obelisco-media`.
-3. Crear un token de API con permiso de escritura sobre ese bucket.
-4. Guardar `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
+El proyecto soporta cualquier almacenamiento compatible con S3. Se elige por variables de
+entorno, sin tocar codigo.
 
-> Si no queres dar tarjeta: Supabase Storage (1 GB gratis, sin tarjeta) sirve como
-> alternativa. Cambia el backend de almacenamiento en `config/settings.py`.
+**Opcion A — Neon Object Storage** (misma cuenta que la base, sin cuenta nueva):
+
+| Secret | De donde |
+|---|---|
+| `AWS_ENDPOINT_URL_S3` | El endpoint que muestra Neon, `https://...storage.<region>.aws.neon.tech` |
+| `AWS_STORAGE_BUCKET_NAME` | El bucket que crees en la consola de Neon |
+| `AWS_ACCESS_KEY_ID` | Token de Neon (`nak_live_...`) |
+| `AWS_SECRET_ACCESS_KEY` | El secreto del token (`nsk_live_...`) |
+| `AWS_REGION` | La region del endpoint, por ejemplo `us-east-2` |
+
+**Opcion B — Cloudflare R2**:
+
+| Secret | De donde |
+|---|---|
+| `R2_ACCOUNT_ID` | Panel de R2 |
+| `R2_BUCKET` | Bucket, por ejemplo `obelisco-media` |
+| `R2_ACCESS_KEY_ID` | Token de API de R2 |
+| `R2_SECRET_ACCESS_KEY` | Secreto del token |
+
+> R2 pide tarjeta para activarse aunque el plan sea gratuito. Neon Storage usa la cuenta
+> que ya tenes.
+>
+> **Sin ninguna de las dos, las imagenes se guardan en el disco del contenedor y
+> desaparecen en cada deploy.** No falla: pierde datos.
 
 ### 3. Hosting (Cloud Run, gratis con tope)
 
@@ -66,10 +97,12 @@ Settings → Secrets and variables → Actions → **Secrets**:
 | `DATABASE_URL_DIRECT` | Neon, sin pooler |
 | `ALLOWED_HOSTS` | El dominio de Cloud Run, **despues del primer deploy** |
 | `CSRF_TRUSTED_ORIGINS` | `https://<dominio>` |
-| `R2_ACCOUNT_ID` | Cloudflare |
-| `R2_ACCESS_KEY_ID` | Cloudflare |
-| `R2_SECRET_ACCESS_KEY` | Cloudflare |
-| `R2_BUCKET` | `obelisco-media` |
+| `AWS_ENDPOINT_URL_S3` | Neon Storage u otro S3 |
+| `AWS_STORAGE_BUCKET_NAME` | El bucket |
+| `AWS_ACCESS_KEY_ID` | Credencial S3 |
+| `AWS_SECRET_ACCESS_KEY` | Credencial S3 |
+| `AWS_REGION` | `us-east-2` |
+| *(o bien)* `R2_*` | Alternativa Cloudflare |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Google Cloud |
 | `GCP_SERVICE_ACCOUNT` | Google Cloud |
 
