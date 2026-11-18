@@ -127,10 +127,24 @@ paralela, no hay doble registro. Responde P34 y elimina el riesgo de los dos reg
 el alcance tambien es para mi y el futuro desarrollo". No hay cliente esperando entrega ni fecha
 comprometida. El alcance lo decide el desarrollador. **Riesgo asociado: R15.**
 
-**D11 — No hay pedidos por encargo. (2025-11-18)**
-"p12. no". No se pide un mueble en una tela o color que no está: se vende lo que hay en stock.
-Sin plazos de entrega por pedido y sin reserva de fábrica. *Tensión abierta con P11 (placares y
-cocinas a medida): si no hay encargos, esos artículos están en stock o son una excepción. Ver O86.*
+**D11 — No se piden variantes de artículos de stock. (2025-11-18, revisada)**
+"p12. no": no se pide un mueble en una tela o color que no está en el salón. Se vende lo que hay.
+**La revisión del bloque 15 acota esta decisión:** no hay encargo de *variantes*, pero sí hay
+pedidos a medida (D12). Son flujos distintos.
+
+**D12 — Sí hay pedidos a medida, y no fabrican. (2025-11-18)**
+No son carpinteros (O95). El circuito es: medir en la casa del cliente → plano → la fábrica
+presupuesta → **margen** → precio al cliente → el cliente confirma → se confirma a la fábrica →
+15 a 20 días → entrega → armado o colocación en el domicilio. Aplica igual a muebles a medida y a
+cortinas de blackout (O103): **"a medida" es un proceso, no una categoría.**
+- El precio reutiliza D-06: **costo de fábrica + margen** (O97). No hay un modelo de precios nuevo.
+- **No entra al MVP.** Consecuencia que hay que decir en voz alta: mientras no exista, el papel
+  sobrevive para esta línea de negocio (D9 se cumple solo para artículos de stock).
+- El modelo no debe impedirlo: al entregarse, genera una entrada y después una venta normal.
+
+**D13 — Los juegos no tienen precio propio. (2025-11-18)**
+"no es que tenga un precio aparte... el precio es lo mismo" (O100). Un juego es **una venta con
+varias líneas** (O101). Sin entidad de combo, sin precio agrupado, sin descuento por conjunto.
 
 ## Decisiones de arquitectura a validar
 

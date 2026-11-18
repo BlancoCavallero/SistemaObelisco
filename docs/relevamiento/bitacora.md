@@ -835,7 +835,88 @@ senzilla, **fase 2** integración de factura electrónica. Las dos afirmaciones 
 - **O94 — Sigue pendiente:** P10 (juegos/combos), P11 (placares a medida) y la explicación de
   consignación, que no se entendió y hay que reformular en concreto.
 
-### Bloque 15 — pendiente
+### Bloque 15 — 2025-11-18 — Muebles a medida, segundo local, juegos y proveedores
+
+> "En cuanto a los muebles a medida, Fede, no. Eso no lo fabricamos nosotros. Nosotros lo que
+> hacemos es, a lo del cliente, medimos, tomamos las medidas, hacemos un plano, ¿sí? dibujamos un
+> plano, se lo pasamos a la fábrica, la fábrica nos presupuesta, ¿sí? y nosotros nos da un precio.
+> Nosotros a ese precio que nos da la fábrica le ponemos un margen de ganancia, se lo pasamos al
+> cliente. Si el cliente nos confirma, se lo confirmamos a la fábrica. La fábrica nos, en 15, 20
+> días nos manda los muebles hechos. Algunos vienen hechos y otros vamos nosotros a la casa y se
+> los armamos. Pero no es que somos, como hace tu viejo, desde cero, ¿sí? no es que somos
+> carpinteros, sino que a nosotros nos hacen una fábrica los muebles y nosotros después vamos y se
+> los armamos a la casa, ¿sí?
+> Después, en cuanto a almacenes, me refiero... creo que te referías a las distintas cosas que
+> tenemos. Nosotros tenemos dos negocios. Ahora el que abrimos hace poquito, que ese lo usamos
+> como exhibición, no hacemos atención al público, sino que lo usamos para exhibir diferentes
+> tipos de muebles, ¿sí? Muebles, reposeras, mesas, sillas. Y en el otro también exhibimos, pero
+> hacemos la atención al público, ¿sí? También tenemos todo lo que me olvidé de detallarte: todo
+> lo que es blanquería, todo lo que es sábanas, toallones, repasadores, acolchados, cover de
+> verano. Vendemos también todo lo que es barrales, soportes para cortinas. Todo esto serían
+> categorías de productos que nosotros vamos a armar después. Hacemos cortinas de blackout a
+> medida, de la misma forma que con los muebles a medida. Se lo pedimos a una fábrica, les pasamos
+> las medidas y la fábrica nos las manda y vamos y las colocamos, las cortinas. Eso también otro
+> rubro. Lo único que tenemos como medio separadito es la parte de electrodomésticos, que la
+> tenemos en el local de donde atendemos al público, al final. Eso lo tenemos todo junto. Después
+> todo lo tenemos todo complementado, qué sé yo. Tenemos el sillón con la mesa ratona, le ponemos
+> alguna lámpara, algo de decoración. Está todo bastante junto, excepto lo que es la parte de
+> electrodomésticos, que sí lo tenemos como medio separado.
+> Sí, sí. Vendemos juegos completos. Por ahí no sé a qué le llaman juegos completos, pero vendemos
+> un juego completo, puede ser de mil sillas, o vendemos las sillas solas, o la mesa, o el juego
+> completo, o vendemos juegos completos de lo que es un juego de sillón, por ejemplo, grande y los
+> dos chicos, o el sillón solo. Si te referías a eso, sí, sí, vendemos juegos completos y también
+> por separado. En cuanto a los proveedores no los tengo contabilizados, pero son unos cuantos.
+> Deben ser entre 40 y 50 proveedores diferentes, entre lo que son casas de electrodomésticos,
+> muebles, blanquería, sí, casi 40 proveedores distintos tenemos, Fede. La mayoría nos comunicamos
+> por WhatsApp o por teléfono, algunos por mail y otros todavía existe el viajante, las fábricas
+> tienen viajante que cada tantos veces al año, ponele cada dos, tres meses, van y te visitan y te
+> levantan el pedido, ¿sí? Pero la mayoría sí es mediante WhatsApp y algunas fábricas de
+> electrodomésticos más que nada, mediante ellos tienen una página que vos entrás y le hacés el
+> pedido directamente mediante una página, pero son muy poquitos.
+> Los juegos tiene un precio diferente a los que el articulo individual? No es que tenga un precio
+> aparte. Sale lo mismo que compre una silla vale lo mismo si la comprás individual a que compre
+> seis y la mesa como juego, ¿sí? El precio es lo mismo. Por lo menos nosotros."
+
+— (ortografía y giros del dictado conservados)
+
+**Observaciones del relevador:**
+
+- **O95 — Q1 respondida, y es el escenario caro.** No fabrican: **no son carpinteros**. Pero **sí
+  hay un proceso de pedido a medida** completo: medir en la casa del cliente → dibujar un plano →
+  pasar el plano a la fábrica → la fábrica presupuesta → **agregar margen** → pasar precio al
+  cliente → cliente confirma → confirmar a la fábrica → **15 a 20 días** → llega el mueble →
+  algunos se entregan armados y otros se arman en la casa.
+- **O96 — D11 se parte en dos.** No se piden variantes de artículos de stock (tela o color que no
+  está), pero **sí existe el encargo a medida**. Son cosas distintas y hay que modelarlas distinto.
+- **O97 — El precio de un mueble a medida usa el mismo mecanismo que el de un artículo de stock.**
+  Costo de fábrica + margen (D-06). No hace falta un modelo de precios nuevo: cambia la fuente del
+  costo, no la regla. Ese es el ahorro grande de este bloque.
+- **O98 — CONTRADICCIÓN con S5.** S5 decía "Un local con depósito propio". Ahora: **dos negocios**.
+  El nuevo funciona solo como **exhibición, sin atención al público**; el otro exhibe y atiende.
+  S5 queda ampliada por S51, no reemplazada: sigue habiendo un local comercial y depósito, y
+  aparece un segundo local de muestra.
+- **O99 — El segundo local obliga a mover mercadería entre locales.** El movimiento de
+  `transferencia` de D-08 ya existe, pero ahora tiene un uso real y diario, no teórico.
+- **O100 — Q2 respondida, y sale el escenario barato.** Venden juegos completos **y** piezas
+  sueltas, y **el precio es el mismo**: "no es que tenga un precio aparte". No hay precio de
+  conjunto.
+- **O101 — Un juego es una venta con varias líneas.** Sin entidad de combo, sin cálculo de precio
+  agrupado, sin descuento por conjunto. El modelo no cambia.
+- **O102 — Categorías nuevas:** blanquería (sábanas, toallones, repasadores, acolchados, cover de
+  verano), barrales y soportes para cortinas, cortinas de blackout.
+- **O103 — "A medida" es un proceso, no una categoría.** Las cortinas de blackout siguen el mismo
+  circuito que los muebles a medida: medidas → fábrica → colocación en domicilio. Aplica a muebles
+  y a cortinas por igual, así que no puede colgar de una categoría de producto.
+- **O104 — Evidencia directa para A14.** "Todo lo tenemos todo complementado... el sillón con la
+  mesa ratona, le ponemos alguna lámpara, algo de decoración". **Las categorías están mezcladas en
+  el mismo espacio físico**, así que numerar sectores por categoría es imposible en la práctica.
+  Solo electrodomésticos está separado. A14 deja de ser una advertencia teórica: es lo que hay.
+- **O105 — 40 a 50 proveedores**, comunicados por WhatsApp o teléfono, algunos por mail, algunos
+  por viajante cada dos o tres meses, y unos pocos por portal web de la fábrica. **No hay órdenes
+  de compra formales.** Un módulo de compras con órdenes sería sobredimensionado: lo que hay que
+  registrar es el ingreso y, a lo sumo, el contacto del proveedor.
+
+### Bloque 16 — pendiente
 
 
 

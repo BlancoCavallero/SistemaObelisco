@@ -80,6 +80,19 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 - **S48** — "las garantias son del fabricante"
 - **S49** — "no hay colchones a medida solo los comprados"
 - **S50** — "el articulo se oculta, para guardar historico de ventas"
+- **S51** — "Nosotros tenemos dos negocios. Ahora el que abrimos hace poquito, que ese lo usamos
+  como exhibición, no hacemos atención al público"
+- **S52** — "medimos, tomamos las medidas, hacemos un plano... se lo pasamos a la fábrica, la
+  fábrica nos presupuesta... le ponemos un margen de ganancia, se lo pasamos al cliente... en 15,
+  20 días nos manda los muebles hechos"
+- **S53** — "no es que somos carpinteros, sino que a nosotros nos hacen una fábrica los muebles y
+  nosotros después vamos y se los armamos a la casa"
+- **S54** — "Vendemos juegos completos y también por separado... El precio es lo mismo"
+- **S55** — "todo lo que es blanquería, todo lo que es sábanas, toallones, repasadores, acolchados,
+  cover de verano... barrales, soportes para cortinas"
+- **S56** — "Hacemos cortinas de blackout a medida, de la misma forma que con los muebles a medida"
+- **S57** — "Deben ser entre 40 y 50 proveedores diferentes... la mayoría nos comunicamos por
+  WhatsApp o por teléfono"
 
 `[pendiente]` S39..Sn — se numeran al consolidar el alcance.
 
@@ -98,7 +111,10 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 - **D9** — El sistema reemplaza el papel: una sola fuente de verdad, sin carpeta paralela.
 - **D10** — Proyecto propio, sin plazo ni presupuesto externo; el alcance lo decide el
   desarrollador (Riesgo 15: el proyecto puede no terminar nunca).
-- **D11** — Sin pedidos por encargo: se vende lo que hay en stock.
+- **D11** — Sin pedidos de *variantes* de artículos de stock.
+- **D12** — Sí hay pedidos a medida (no fabrican): medir, plano, presupuesto de fábrica, margen,
+  confirmación, 15-20 días, armado o colocación. Fuera del MVP.
+- **D13** — Los juegos no tienen precio propio: una venta con varias líneas.
 
 ## Tasks
 
@@ -131,6 +147,10 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 | R25 | Carga progresiva del stock: entrada sin compra, sin evento de conteo | S41, A27 | a diseñar |
 | R26 | Baja lógica de artículos: ocultar conservando historial | S50, A29 | a diseñar |
 | R27 | Devolución a fábrica/proveedor por daño o falla | S43, S48 | a diseñar |
+| R28 | Segundo local: exhibición sin atención, con transferencias entre locales | S51 | capturado |
+| R29 | Pedido a medida: medición, plano, presupuesto, margen, confirmación, 15-20 días | S52, S53, S56 | fase 2 |
+| R30 | Proveedores: padrón de 40-50 con canal de contacto, sin órdenes de compra | S57 | a diseñar |
+| R31 | Venta con varias líneas (juegos sin precio propio) | S54, A32 | a diseñar |
 
 ## Log
 
@@ -154,5 +174,7 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 **L14 — Cierre de bloqueantes:** `P7` respondida con SÍ (todo entra y sale registrado) → el criterio de éxito es alcanzable. `P42` respondida: documento interno, sin CAE (D6). `P4` respondida sin número ("lo que haga falta" → D5). Cuatro parámetros "modificables" → A21 (lista cerrada). Mantenimiento = el desarrollador (D8, A22). Una PC + celulares (A23). Margen inicial 10% para todos, configurable. Devoluciones 15 días configurable. Localidades ampliables, la localidad es Quenuma. Un sector puede mezclar categorías (confirma A14). Sin responder: P11, P10, P12, P21-P23, plazo, y P6 por incomprensión.
 
 **L15 — Usuarios y web:** usuarios por empleado (S39) y aplicación web (S40). Roles por permiso y no por persona: dos alcanzan (A24). La sesión debe ser barata o la auditoría muere (A25). Usuario se desactiva, no se borra (A26). Nueva superficie de seguridad: Riesgo 14.
+
+**L16 — Bloque 15:** Q1 y Q2 respondidas. No fabrican: hay pedido a medida con fábrica externa (D12, fuera del MVP). Los juegos no tienen precio propio (D13) → sin entidad de combo. Dos locales: el nuevo es solo exhibición (S51) → contradice S5, que queda ampliada. Nuevas categorías: blanquería, barrales, cortinas de blackout (S55, S56). 40-50 proveedores por WhatsApp, sin órdenes de compra (S57). Evidencia directa de A14: las categorías están mezcladas en el espacio físico.
 
 **L16 — Cierre del bloque de alcance:** carga progresiva, sin evento de conteo (S41, A27). El sistema reemplaza el papel (D9). Sin pedidos por encargo (D11). Pesos, sin dólar (S43). Dañado vuelve al proveedor (S43). Garantía del fabricante (S48). Verano es categoría (S47). Sin colchones a medida (S49). Baja lógica con historial (S50, A29). Imágenes de producto (S45, A30). Proyecto propio sin plazo (D10) → Riesgo 15. Queda pendiente P10, P11 y reformular consignación.

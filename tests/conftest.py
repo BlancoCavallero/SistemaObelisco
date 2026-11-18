@@ -6,6 +6,14 @@ from catalogo.models import Categoria, Producto, TipoProducto
 from core.models import Usuario
 
 
+@pytest.fixture(autouse=True)
+def sin_tls(settings):
+    """Tests run over plain HTTP; production keeps the redirects on."""
+    settings.SECURE_SSL_REDIRECT = False
+    settings.SESSION_COOKIE_SECURE = False
+    settings.CSRF_COOKIE_SECURE = False
+
+
 @pytest.fixture
 def usuario(db):
     return Usuario.objects.create_user(username="diego", password="clave-segura-1")
