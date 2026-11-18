@@ -61,8 +61,9 @@ corriendo, asi se verifica que lo desplegado es lo que se etiqueto.
 
 ## Quien empuja
 
-**Autorizacion vigente (2026-11-18):** el agente puede publicar commits en **`develop`** en este
-repositorio sin pedir permiso en cada uno.
+**Autorizacion vigente (2026-11-18):** el agente publica en **`develop`** como parte de
+terminar un trabajo, sin preguntar. Publicar no es un hito ni una aprobacion: es el ultimo paso
+de un commit ya verificado.
 
 **No incluye, y se sigue pidiendo:**
 
@@ -71,9 +72,6 @@ repositorio sin pedir permiso en cada uno.
 - borrar ramas
 - crear tags o releases (el release dispara el deploy)
 - commitear secretos, credenciales o archivos que superen el limite de tamano
-
-Recomendado: proteger `main` en GitHub exigiendo PR y CI verde. Asi el permiso de publicacion
-no puede tocar la rama que publica versiones.
 
 ## Secrets del repositorio
 
