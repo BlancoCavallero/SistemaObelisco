@@ -132,3 +132,45 @@ button:disabled {
 
 .exito { background: #e8f0e6; border: 1px solid #c8dcc2; }
 .error { background: #f7e6e4; border: 1px solid #e3c3bf; }
+
+.titulo-seccion {
+  font-size: 1rem;
+  margin: 0 0 0.6rem;
+}
+
+.linea-venta {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  background: var(--papel);
+}
+
+.linea-venta div {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.linea-venta span { color: var(--tenue); font-size: 0.78rem; }
+
+.linea-venta input {
+  width: 4.5rem;
+  min-height: 2.5rem;
+  text-align: center;
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  background: var(--papel);
+  font: inherit;
+}
+
+.total {
+  font-size: 1.15rem;
+  font-family: Georgia, "Bitter", serif;
+  border-top: 1px solid var(--linea);
+  padding-top: 0.75rem;
+  margin: 0;
+}

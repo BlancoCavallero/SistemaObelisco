@@ -11,6 +11,7 @@ export type Producto = {
   color: string;
   medidas: string;
   stock: number;
+  precio_venta: string | null;
   imagen: string | null;
 };
 
@@ -70,5 +71,7 @@ export const api = {
     return pedir<Producto[]>(`/api/productos/buscar/?${query}`);
   },
   crearProducto: (datos: Record<string, unknown>) => enviar<Producto>("/api/productos/", datos),
+  clientes: () => pedir<{ id: number; nombre: string; ciudad: string; habilitado_cuenta_corriente: boolean }[]>("/api/clientes/"),
+  vender: (datos: Record<string, unknown>) => enviar<{ id: number; total: string; detalle: { nombre: string; cantidad: number; subtotal: string }[] }>("/api/ventas/", datos),
   movimiento: (datos: Record<string, unknown>) => enviar<Movimiento>("/api/movimientos/", datos),
 };

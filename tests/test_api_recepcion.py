@@ -185,3 +185,13 @@ def test_movimientos_que_cambian_otra_dimension_no_se_cargan_a_mano(
     )
     assert r.status_code == 400
     assert Movimiento.objects.count() == 0
+
+
+def test_el_staff_ve_el_stock_disponible(cliente, usuario, producto):
+    from inventario.models import Movimiento
+
+    Movimiento.objects.create(producto=producto, usuario=usuario, cantidad=7, tipo="entrada_compra")
+
+    respuesta = cliente.get("/api/productos/buscar/")
+
+    assert respuesta.data[0]["stock"] == 7
