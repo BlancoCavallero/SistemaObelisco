@@ -12,6 +12,7 @@ from django.core.checks import run_checks
 from django.test import override_settings
 
 WORKFLOW = Path(".github/workflows/release.yml")
+BACKUP = Path(".github/workflows/backup.yml")
 
 # Variables de entorno que la aplicacion realmente lee.
 LEIDAS_POR_LA_APP = {
@@ -31,15 +32,30 @@ LEIDAS_POR_LA_APP = {
     "APP_VERSION",
 }
 
+# Variables que usa el pipeline, no la aplicacion (pg_dump necesita la conexion directa).
+SOLO_CI = {"DATABASE_URL_DIRECT"}
 
-def test_el_workflow_solo_pasa_variables_que_la_app_lee():
-    texto = WORKFLOW.read_text(encoding="utf-8")
-    pasadas = set(re.findall(r"^\s+([A-Z0-9_]+)=\$\{\{ secrets\.", texto, re.MULTILINE))
 
-    assert pasadas, "no se encontro ninguna variable en el workflow"
-    assert pasadas <= LEIDAS_POR_LA_APP, (
-        "el workflow pasa variables que la app no lee: " + str(sorted(pasadas - LEIDAS_POR_LA_APP))
+@pytest.mark.parametrize("workflow", [WORKFLOW, BACKUP])
+def test_los_workflows_solo_pasan_variables_que_la_app_lee(workflow):
+    texto = workflow.read_text(encoding="utf-8")
+    # Dos formatos: linea de bloque `K=V` (release) y mapa YAML `K: V` (backup).
+    pasadas = set(
+        re.findall(r"^\s+([A-Z0-9_]+)\s*[=:]\s*\$\{\{\s*secrets\.", texto, re.MULTILINE)
     )
+
+    assert pasadas, f"no se encontro ninguna variable en {workflow}"
+    assert pasadas <= LEIDAS_POR_LA_APP | SOLO_CI, (
+        f"{workflow} pasa variables que la app no lee: " + str(sorted(pasadas - LEIDAS_POR_LA_APP))
+    )
+
+
+def test_el_backup_puede_usar_un_s3_generico_y_no_solo_r2():
+    texto = BACKUP.read_text(encoding="utf-8")
+
+    assert "AWS_ENDPOINT_URL_S3" in texto
+    assert "AWS_STORAGE_BUCKET_NAME" in texto
+    assert "DATABASE_URL_DIRECT" in texto
 
 
 def test_la_app_no_arranca_con_la_clave_de_desarrollo_en_produccion():

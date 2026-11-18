@@ -7,7 +7,7 @@ on:
 
 jobs:
   dump:
-    # Stays green (skipped) until the repository variable BACKUP_ENABLED is set to true.
+    # Stays green (skipped) until the repository variable BACKUP_ENABLED is true.
     if: vars.BACKUP_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -19,20 +19,39 @@ jobs:
           # Direct (non-pooled) connection: pg_dump does not work through a PgBouncer pooler.
           DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
         run: |
+          set -eu
           stamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
           pg_dump "$DATABASE_URL" --no-owner --no-privileges -Fc -f "obelisco-${stamp}.dump"
           echo "BACKUP_FILE=obelisco-${stamp}.dump" >> "$GITHUB_ENV"
 
-      - name: Upload to Cloudflare R2
+      - name: Upload to S3-compatible storage
+        # Same resolution the app uses: a generic S3 endpoint (Neon Storage) or R2.
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ENDPOINT_URL_S3: ${{ secrets.AWS_ENDPOINT_URL_S3 }}
+          AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          BACKUP_FILE: ${{ env.BACKUP_FILE }}
         run: |
-          aws s3 cp "$BACKUP_FILE" "s3://${{ secrets.R2_BUCKET }}/backups/$BACKUP_FILE" \
-            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          set -eu
+          if [ -n "${AWS_ENDPOINT_URL_S3:-}" ]; then
+            endpoint="$AWS_ENDPOINT_URL_S3"
+            bucket="$AWS_STORAGE_BUCKET_NAME"
+          else
+            endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            bucket="$R2_BUCKET"
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+            export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+          fi
+          echo "Destino: s3://${bucket}/backups/${BACKUP_FILE}"
+          aws s3 cp "$BACKUP_FILE" "s3://${bucket}/backups/${BACKUP_FILE}" \
+            --endpoint-url "$endpoint"
 
-      - name: Keep the dump as a build artifact for 30 days
+      - name: Keep the dump as a workflow artifact for 30 days
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BACKUP_FILE }}
