@@ -89,9 +89,7 @@ class TransferirView(APIView):
 
         with transaction.atomic():
             producto = Producto.objects.select_for_update().get(pk=datos["producto"].pk)
-            disponible = _stock(
-                producto, estado=datos["estado"], posicion=datos["desde"]
-            )
+            disponible = _stock(producto, estado=datos["estado"], posicion=datos["desde"])
             if disponible < datos["cantidad"]:
                 return Response(
                     {"detail": f"Solo hay {disponible} en la posicion de origen."},

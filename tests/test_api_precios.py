@@ -24,9 +24,7 @@ def cliente(usuario):
 def otro_producto(tipo):
     from catalogo.models import Producto
 
-    return Producto.objects.create(
-        tipo=tipo, color="negro", alto_cm=80, ancho_cm=80, largo_cm=150
-    )
+    return Producto.objects.create(tipo=tipo, color="negro", alto_cm=80, ancho_cm=80, largo_cm=150)
 
 
 def test_cargar_un_costo_queda_vigente(cliente, producto):

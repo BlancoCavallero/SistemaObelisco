@@ -2,6 +2,7 @@
 
 from django.urls import path
 
+from .ubicaciones import AlmacenViewSet, PosicionViewSet, SectorViewSet
 from .views import (
     ArmarView,
     HistorialMovimientosView,
@@ -20,4 +21,11 @@ urlpatterns = [
         name="producto-movimientos",
     ),
     path("stock/", StockListView.as_view(), name="stock-list"),
+    path("almacenes/", AlmacenViewSet.as_view({"get": "list", "post": "create"}), name="almacenes"),
+    path("sectores/", SectorViewSet.as_view({"get": "list", "post": "create"}), name="sectores"),
+    path(
+        "posiciones/",
+        PosicionViewSet.as_view({"get": "list", "post": "create"}),
+        name="posiciones",
+    ),
 ]
