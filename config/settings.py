@@ -127,6 +127,9 @@ if R2_ACCOUNT_ID:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Injected by the release workflow. "dev" means the code is not a release.
+APP_VERSION = env("APP_VERSION", "dev")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",

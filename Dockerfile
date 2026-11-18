@@ -4,6 +4,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 WORKDIR /app
 
 RUN adduser --disabled-password --gecos "" app

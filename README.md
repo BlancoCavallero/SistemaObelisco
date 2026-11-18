@@ -32,6 +32,33 @@ Sin `DATABASE_URL` la aplicacion usa SQLite, para que los tests corran sin base 
 .venv/bin/ruff check .
 ```
 
+## Ramas y versionado
+
+| Rama | Para que |
+|---|---|
+| `main` | Solo releases. Cada merge aca publica una version. |
+| `develop` | Integracion. Todo el trabajo va aca. |
+| `feat/*` | Trabajo en curso, se mergea a `develop` por PR. |
+
+El flujo es: `feat/*` → PR → `develop` → CI verde → PR → `main` → **release automatico**.
+
+La version sale de los mensajes de commit ([Conventional Commits](https://www.conventionalcommits.org/)),
+nunca se escribe a mano:
+
+| Commits desde el ultimo tag | Sube |
+|---|---|
+| `feat:` | minor (`0.2.0`) |
+| `fix:`, `docs:`, `test:`, cualquier otro | patch (`0.1.1`) |
+| `feat!:` o `BREAKING CHANGE:` en el cuerpo | major (`2.0.0`) |
+
+Antes de `1.0.0` un cambio incompatible sube **minor**, no major: el proyecto todavia no
+tiene contrato que romper. El calculo vive en `scripts/version.py` y tiene sus propios tests
+(`tests/test_version.py`), para que el numero no dependa de una accion de terceros.
+
+Al mergear a `main` el workflow `Release` calcula la version, crea el tag `vX.Y.Z`, publica
+un GitHub Release y recien despues despliega. `GET /health/` devuelve la version que esta
+corriendo, asi se verifica que lo desplegado es lo que se etiqueto.
+
 ## Secrets del repositorio
 
 El pipeline de CI corre sin configuracion. El deploy y el backup quedan **desactivados**

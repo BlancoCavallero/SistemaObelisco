@@ -1,12 +1,13 @@
 """URL configuration."""
 
+from django.conf import settings
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 
 
 def health(_request):
-    return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "ok", "version": settings.APP_VERSION})
 
 
 urlpatterns = [

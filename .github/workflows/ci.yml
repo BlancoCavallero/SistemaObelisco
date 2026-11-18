@@ -1,8 +1,14 @@
 name: CI
 
+# Runs on every branch and every PR. This is the gate that must be green before a
+# pull request into main can be merged.
 on:
   push:
   pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -24,7 +30,6 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/obelisco
       SECRET_KEY: ci-not-a-secret
-      DEBUG: "False"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
