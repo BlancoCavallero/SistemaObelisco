@@ -20,6 +20,7 @@ class TipoProductoSerializer(serializers.ModelSerializer):
 class ProductoSerializer(serializers.ModelSerializer):
     nombre = serializers.ReadOnlyField()
     id_visible = serializers.ReadOnlyField()
+    precio_venta = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
@@ -33,6 +34,7 @@ class ProductoSerializer(serializers.ModelSerializer):
             "modelo",
             "nombre",
             "id_visible",
+            "precio_venta",
             "activo",
         ]
         read_only_fields = ["activo"]
@@ -40,6 +42,11 @@ class ProductoSerializer(serializers.ModelSerializer):
         # detail. `buscar_duplicado` answers 409 with the existing product instead, so
         # the operator can add stock to it. The database constraint still guards.
         validators = []
+
+    def get_precio_venta(self, producto):
+        precio = producto.precio_venta()
+        # Decimal("11000").quantize(Decimal("1E2")) prints as "1.1E+4": format it fixed.
+        return None if precio is None else f"{precio:.2f}"
 
     def buscar_duplicado(self):
         """Return the existing product with the same attributes, if any.
