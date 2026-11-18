@@ -49,15 +49,20 @@ Verificado contra el servidor real: Neon corre **PostgreSQL 18.7** y Django cone
 El proyecto soporta cualquier almacenamiento compatible con S3. Se elige por variables de
 entorno, sin tocar codigo.
 
-**Opcion A — Neon Object Storage** (misma cuenta que la base, sin cuenta nueva):
+**Opcion A — Neon Object Storage** (misma cuenta que la base, sin cuenta nueva).
+**Verificado**: se escribio, leyo y borro un archivo a traves de Django.
 
-| Secret | De donde |
-|---|---|
-| `AWS_ENDPOINT_URL_S3` | El endpoint que muestra Neon, `https://...storage.<region>.aws.neon.tech` |
-| `AWS_STORAGE_BUCKET_NAME` | El bucket que crees en la consola de Neon |
-| `AWS_ACCESS_KEY_ID` | Token de Neon (`nak_live_...`) |
-| `AWS_SECRET_ACCESS_KEY` | El secreto del token (`nsk_live_...`) |
-| `AWS_REGION` | La region del endpoint, por ejemplo `us-east-2` |
+| Secret | De donde | Valor de este proyecto |
+|---|---|---|
+| `AWS_ENDPOINT_URL_S3` | Neon Console → Storage → el endpoint | `https://br-muddy-snow-be0mrchr.storage.c-9.us-east-2.aws.neon.tech` |
+| `AWS_STORAGE_BUCKET_NAME` | Neon Console → Storage → Buckets | `uploads` |
+| `AWS_ACCESS_KEY_ID` | Token generado en Storage → API keys | `nak_live_...` |
+| `AWS_SECRET_ACCESS_KEY` | Se muestra una sola vez | `nsk_live_...` |
+| `AWS_REGION` | La region del endpoint | `us-east-2` |
+
+El bucket **no se inventa**: ya existe uno llamado `uploads` en la cuenta. Si hace falta
+otro, `python -c "import boto3,os; boto3.client('s3',endpoint_url=os.environ['AWS_ENDPOINT_URL_S3'],region_name=os.environ['AWS_REGION']).create_bucket(Bucket='obelisco-media')"`
+con las mismas credenciales en el entorno.
 
 **Opcion B — Cloudflare R2**:
 
