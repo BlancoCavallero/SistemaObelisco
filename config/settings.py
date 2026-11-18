@@ -11,6 +11,16 @@ def env(name, default=None):
     return os.environ.get(name, default)
 
 
+def parse_lista(raw, default=None):
+    """Comma separated env var to list. An empty value falls back to `default`.
+
+    This matters in production: an unset ALLOWED_HOSTS must not leave the app
+    rejecting every request, which is what an empty list would do.
+    """
+    valores = [valor.strip() for valor in (raw or "").split(",") if valor.strip()]
+    return valores or list(default or [])
+
+
 def env_bool(name, default=False):
     raw = os.environ.get(name)
     if raw is None:
@@ -20,8 +30,8 @@ def env_bool(name, default=False):
 
 DEBUG = env_bool("DEBUG", False)
 SECRET_KEY = env("SECRET_KEY", "dev-insecure-key-change-me")
-ALLOWED_HOSTS = [h.strip() for h in env("ALLOWED_HOSTS", "*").split(",") if h.strip()]
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
+ALLOWED_HOSTS = parse_lista(env("ALLOWED_HOSTS"), default=["*"])
+CSRF_TRUSTED_ORIGINS = parse_lista(env("CSRF_TRUSTED_ORIGINS"))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
