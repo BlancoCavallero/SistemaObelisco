@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/api.ts","./src/main.tsx","./src/pages/Catalogo.tsx","./src/pages/Login.tsx","./src/pages/Precios.tsx","./src/pages/Recepcion.tsx","./src/pages/Venta.tsx"],"version":"5.9.3"}
+{"root":["./src/App.tsx","./src/api.ts","./src/main.tsx","./src/components/LogoObelisco.tsx","./src/pages/Catalogo.tsx","./src/pages/Inicio.tsx","./src/pages/Login.tsx","./src/pages/Precios.tsx","./src/pages/Recepcion.tsx","./src/pages/Venta.tsx"],"version":"5.9.3"}

@@ -1,0 +1,100 @@
+/* Portada: superficie de vidriera, la unica con animacion de entrada. */
+
+.inicio {
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 3rem;
+  padding: 3rem 1.5rem 4rem;
+  text-align: center;
+}
+
+.inicio-marca {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+}
+
+.obelisco {
+  width: clamp(64px, 16vw, 104px);
+  height: auto;
+  color: var(--tinta);
+  animation: alzarse 900ms var(--curva) both;
+}
+
+.inicio-nombre {
+  font-size: clamp(2.4rem, 9vw, 4rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+  animation: aparecer 700ms var(--curva) 180ms both;
+}
+
+.inicio-bajada {
+  max-width: 30ch;
+  margin: 0;
+  color: var(--tenue);
+  line-height: 1.55;
+  animation: aparecer 700ms var(--curva) 300ms both;
+}
+
+.inicio-lugar {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  opacity: 0.8;
+  animation: aparecer 700ms var(--curva) 400ms both;
+}
+
+.inicio-acciones {
+  display: grid;
+  gap: 0.6rem;
+  width: min(100%, 20rem);
+  animation: aparecer 700ms var(--curva) 520ms both;
+}
+
+.boton-principal,
+.boton-secundario {
+  display: grid;
+  place-items: center;
+  min-height: 3rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.92rem;
+  border: 1px solid var(--tinta);
+}
+
+.boton-principal {
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+.boton-secundario {
+  background: transparent;
+  color: var(--tenue);
+  border-color: var(--linea);
+  font-size: 0.82rem;
+}
+
+@keyframes alzarse {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .obelisco,
+  .inicio-nombre,
+  .inicio-bajada,
+  .inicio-lugar,
+  .inicio-acciones {
+    animation: none;
+  }
+}

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles/tokens.css";
 import "./styles/catalogo.css";
+import "./styles/inicio.css";
 import "./styles/operacion.css";
 
 const raiz = document.getElementById("raiz");

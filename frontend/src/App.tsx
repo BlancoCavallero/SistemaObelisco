@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Perfil } from "./api";
 import CatalogoPagina from "./pages/Catalogo";
 import Login from "./pages/Login";
+import Inicio from "./pages/Inicio";
 import Precios from "./pages/Precios";
 import Recepcion from "./pages/Recepcion";
 import Venta from "./pages/Venta";
@@ -51,12 +52,16 @@ export default function App() {
     return <Recepcion perfil={perfil} onSalir={salir} />;
   }
 
-  return (
-    <main>
-      <CatalogoPagina />
-      <p className="contenedor" style={{ paddingBottom: "2rem" }}>
-        <a className="link-fino" href="/recepcion">Cargar mercadería</a>
-      </p>
-    </main>
-  );
+  if (ruta.startsWith("/catalogo")) {
+    return (
+      <main>
+        <CatalogoPagina />
+        <p className="contenedor" style={{ paddingBottom: "2rem" }}>
+          <a className="link-fino" href="/">Volver al inicio</a>
+        </p>
+      </main>
+    );
+  }
+
+  return <Inicio />;
 }
