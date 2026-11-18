@@ -52,6 +52,20 @@ class Parametro(models.Model):
     def __str__(self):
         return f"{self.clave} desde {self.vigente_desde}"
 
+    MARGEN_POR_DEFECTO = 0.10
+
+    @classmethod
+    def margen_para(cls, categoria, fecha=None):
+        """Margin for a category, falling back to the default column of the same row.
+
+        One row holds both the default and the per-category overrides, so a single
+        effective date drives the whole pricing rule.
+        """
+        from decimal import Decimal
+
+        vigente = cls.valor_vigente("margen", fecha) or {}
+        return Decimal(str(vigente.get(categoria, vigente.get("default", cls.MARGEN_POR_DEFECTO))))
+
     @classmethod
     def valor_vigente(cls, clave, fecha=None):
         """Return the value in effect on `fecha` (default: today), or None."""

@@ -1,6 +1,9 @@
 """Product catalog. Identity is derived, never typed: this is what prevents duplicates."""
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.db import models
+from django.utils import timezone
 
 COLORES = [
     ("blanco", "Blanco"),
@@ -93,6 +96,34 @@ class Producto(models.Model):
     def medidas(self):
         return f"{self.alto_cm}x{self.ancho_cm}x{self.largo_cm}"
 
+    def costo_vigente(self, fecha=None):
+        """Factory list cost in effect on `fecha` (default: today), or None."""
+        fecha = fecha or timezone.localdate()
+        return (
+            self.precios_lista.filter(vigente_desde__lte=fecha)
+            .order_by("-vigente_desde")
+            .values_list("valor", flat=True)
+            .first()
+        )
+
+    def precio_venta(self, fecha=None):
+        """Cost x (1 + category margin), rounded to the nearest hundred.
+
+        Never stored: it is computed from two versioned values so that changing the
+        margin today cannot rewrite the price of yesterday's sale.
+        """
+        from core.models import Parametro
+
+        costo = self.costo_vigente(fecha)
+        if costo is None:
+            return None
+
+        margen = Parametro.margen_para(self.tipo.categoria.nombre, fecha)
+        bruto = Decimal(costo) * (Decimal("1") + margen)
+        # Decimal("1E2") has exponent 2: rounds to the nearest hundred. Decimal("100")
+        # would have exponent 0 and round to the nearest unit, silently.
+        return bruto.quantize(Decimal("1E2"), rounding=ROUND_HALF_UP)
+
     @property
     def id_visible(self):
         if self.pk is None:
@@ -115,3 +146,30 @@ class ImagenProducto(models.Model):
 
     def __str__(self):
         return f"Imagen de {self.producto_id}"
+
+
+class PrecioLista(models.Model):
+    """Factory list cost for a product, with an effective date.
+
+    Rows are append-only: a new list means a new row, never an update. Rewriting the cost
+    would silently change the price of every past sale, which is exactly the problem this
+    table exists to avoid.
+    """
+
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="precios_lista")
+    valor = models.DecimalField(max_digits=14, decimal_places=2)
+    vigente_desde = models.DateField()
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-vigente_desde"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["producto", "vigente_desde"], name="precio_lista_unico_por_fecha"
+            )
+        ]
+        verbose_name = "precio de lista"
+        verbose_name_plural = "precios de lista"
+
+    def __str__(self):
+        return f"{self.producto_id} ${self.valor} desde {self.vigente_desde}"
