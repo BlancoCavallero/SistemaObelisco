@@ -174,3 +174,25 @@ button:disabled {
   padding-top: 0.75rem;
   margin: 0;
 }
+
+.pegado {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  padding: 0.7rem;
+  background: var(--papel);
+  color: var(--tinta);
+  resize: vertical;
+  margin-bottom: 0.75rem;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+}

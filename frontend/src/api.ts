@@ -71,6 +71,12 @@ export const api = {
     return pedir<Producto[]>(`/api/productos/buscar/?${query}`);
   },
   crearProducto: (datos: Record<string, unknown>) => enviar<Producto>("/api/productos/", datos),
+  productos: () => pedir<Producto[]>("/api/productos/"),
+  faltantes: () => pedir<Producto[]>("/api/precios/faltantes/"),
+  cargarPrecios: (vigente_desde: string, valores: { producto: number; valor: string }[]) =>
+    enviar<{ creados: number }>("/api/precios/", { vigente_desde, valores }),
+  preciosDe: (id: number) =>
+    pedir<{ valor: string; vigente_desde: string }[]>(`/api/productos/${id}/precios/`),
   clientes: () => pedir<{ id: number; nombre: string; ciudad: string; habilitado_cuenta_corriente: boolean }[]>("/api/clientes/"),
   vender: (datos: Record<string, unknown>) => enviar<{ id: number; total: string; detalle: { nombre: string; cantidad: number; subtotal: string }[] }>("/api/ventas/", datos),
   movimiento: (datos: Record<string, unknown>) => enviar<Movimiento>("/api/movimientos/", datos),
