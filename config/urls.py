@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path, re_path
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from config.views import spa
 
@@ -16,10 +17,11 @@ def health(_request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", health),
+    path("api/", include("core.urls")),
     path("api/", include("catalogo.urls")),
     path("api/", include("inventario.urls")),
     # Everything that is not API, admin, health or a static file belongs to the SPA.
-    re_path(r"^(?!api/|admin/|health/|static/|media/).*$", spa, name="spa"),
+    re_path(r"^(?!api/|admin/|health/|static/|media/).*$", ensure_csrf_cookie(spa), name="spa"),
 ]
 
 if settings.DEBUG:

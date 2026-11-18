@@ -1,11 +1,16 @@
 """Catalog endpoints: search first, create second."""
 
 from django.db.models import Q
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Producto
-from .serializers import ProductoSerializer
+from .models import COLORES, Categoria, Producto, TipoProducto
+from .serializers import (
+    CategoriaSerializer,
+    ProductoSerializer,
+    TipoProductoSerializer,
+)
 
 
 class ProductoBuscarView(generics.ListAPIView):
@@ -65,3 +70,32 @@ class ProductoListCreateView(generics.ListCreateAPIView):
 
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class CategoriaViewSet(viewsets.ModelViewSet):
+    """Categories grow as the business adds lines: they are data, not code."""
+
+    serializer_class = CategoriaSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Categoria.objects.filter(activo=True)
+
+
+class TipoProductoViewSet(viewsets.ModelViewSet):
+    serializer_class = TipoProductoSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = TipoProducto.objects.select_related("categoria").all()
+        categoria = self.request.query_params.get("categoria")
+        if categoria:
+            queryset = queryset.filter(categoria_id=categoria)
+        return queryset
+
+
+class ColoresView(APIView):
+    """The closed color list. Free text here would create three greys."""
+
+    def get(self, _request):
+        return Response([{"valor": valor, "etiqueta": etiqueta} for valor, etiqueta in COLORES])
