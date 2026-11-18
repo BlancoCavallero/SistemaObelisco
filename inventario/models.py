@@ -53,6 +53,17 @@ class Posicion(models.Model):
         return f"{self.sector}/{self.codigo}"
 
 
+class EstadoArticulo(models.TextChoices):
+    """Whether the item is still boxed or already assembled and displayable.
+
+    Furniture arrives flat-packed, so the same product can exist in two states. The
+    total stock is unaffected by assembly; only this dimension changes.
+    """
+
+    EN_CAJA = "en_caja", "En caja"
+    LISTO = "listo", "Listo para exhibir"
+
+
 class TipoMovimiento(models.TextChoices):
     ENTRADA_COMPRA = "entrada_compra", "Entrada por compra"
     ENTRADA_INVENTARIO_INICIAL = "entrada_inventario_inicial", "Entrada por inventario inicial"
@@ -69,6 +80,10 @@ class MovimientoQuerySet(models.QuerySet):
         """Current stock per product id, derived from the ledger."""
         return self.values("producto").annotate(total=Sum("cantidad")).order_by()
 
+    def stock_por_estado(self):
+        """Stock split by product and state. The sum over states equals the total."""
+        return self.values("producto", "estado").annotate(total=Sum("cantidad")).order_by()
+
 
 class Movimiento(models.Model):
     """The single source of truth for stock. Append-only.
@@ -82,6 +97,9 @@ class Movimiento(models.Model):
     )
     cantidad = models.IntegerField()
     tipo = models.CharField(max_length=32, choices=TipoMovimiento.choices)
+    estado = models.CharField(
+        max_length=16, choices=EstadoArticulo.choices, default=EstadoArticulo.LISTO
+    )
     fecha = models.DateTimeField(default=timezone.now)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="movimientos"
