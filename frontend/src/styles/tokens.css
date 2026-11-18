@@ -1,0 +1,70 @@
+/* Paleta y movimiento. Un solo color de tema que cambia con la categoria:
+   la metafora es la luz del local sobre el material, no una playa. */
+
+:root {
+  --tinta: #1a1512;
+  --papel: #faf7f2;
+  --tenue: #6f6459;
+  --linea: #e2dbd1;
+
+  /* Ambiente por categoria */
+  --ambiente: #f2ece3;
+  --ambiente-tinta: #1a1512;
+
+  /* Movimiento: solo transform y opacity, nunca layout */
+  --micro: 150ms;
+  --entrada: 360ms;
+  --cambio: 700ms;
+  --curva: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  --radio: 10px;
+  --ancho: 1080px;
+}
+
+[data-ambiente="Muebles"] { --ambiente: #f3e6d4; }
+[data-ambiente="Electrodomesticos"] { --ambiente: #e3eaf0; }
+[data-ambiente="Blanqueria"] { --ambiente: #f7f1e6; }
+[data-ambiente="Verano"] { --ambiente: #e4f0f2; }
+[data-ambiente="Oficina"] { --ambiente: #eceff1; }
+[data-ambiente="Decoracion"] { --ambiente: #f0eae2; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Libre Franklin", "Segoe UI", system-ui, sans-serif;
+  color: var(--tinta);
+  background: var(--ambiente);
+  transition: background-color var(--cambio) var(--curva);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: Georgia, "Bitter", serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+a { color: inherit; }
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.contenedor {
+  width: min(100% - 2rem, var(--ancho));
+  margin-inline: auto;
+}

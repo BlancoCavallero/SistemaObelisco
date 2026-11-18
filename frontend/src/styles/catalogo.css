@@ -1,0 +1,141 @@
+.cabecera {
+  padding: 2.5rem 0 1.25rem;
+}
+
+.cabecera h1 {
+  font-size: clamp(1.9rem, 6vw, 3rem);
+  line-height: 1.05;
+}
+
+.cabecera p {
+  margin: 0.75rem 0 0;
+  max-width: 42ch;
+  color: var(--tenue);
+  line-height: 1.55;
+}
+
+.colecciones {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.75rem 0 1.25rem;
+  scrollbar-width: none;
+}
+
+.colecciones::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--linea);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  transition: transform var(--micro) var(--curva), background-color var(--micro) var(--curva),
+    border-color var(--micro) var(--curva);
+}
+
+.chip:hover { transform: translateY(-1px); }
+
+.chip[aria-pressed="true"] {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  padding-bottom: 4rem;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  overflow: hidden;
+  background: var(--papel);
+  animation: subir var(--entrada) var(--curva) both;
+  animation-delay: calc(min(var(--i), 8) * 40ms);
+  transition: transform var(--micro) var(--curva);
+}
+
+.tarjeta:hover { transform: translateY(-2px); }
+
+/* Retrato: el mueble se reconoce por su silueta, no por su nombre. */
+.retrato {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(160deg, #efe9e0, #ddd4c8);
+  overflow: hidden;
+}
+
+.retrato img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.retrato .vacio {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #a49786;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.datos { padding: 0.85rem 0.95rem 1rem; }
+
+.datos h3 {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.datos .medidas {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--tenue);
+  font-variant-numeric: tabular-nums;
+}
+
+.disponibles {
+  margin-top: 0.6rem;
+  display: inline-block;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  border-top: 1px solid var(--linea);
+  padding-top: 0.45rem;
+}
+
+.estado {
+  padding: 3rem 0 5rem;
+  color: var(--tenue);
+}
+
+@keyframes subir {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .tarjeta:hover, .chip:hover { transform: none; }
+}
+
+@media (max-width: 480px) {
+  .grilla { grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
+  .datos { padding: 0.6rem 0.65rem 0.75rem; }
+  .datos h3 { font-size: 0.88rem; }
+}
