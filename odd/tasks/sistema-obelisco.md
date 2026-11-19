@@ -152,6 +152,7 @@ sostienen el estado; sin commit, la fila es documentación o no está hecha.
 | R29 | Pedido a medida: medición, plano, presupuesto, margen, confirmación, 15-20 días | S52, S53, S56 | fase 2 (D12) | — |
 | R30 | Proveedores: padrón de 40-50 con canal de contacto, sin órdenes de compra | S57 | hecho | `4e14e65` `dcac8b5` |
 | R31 | Venta con varias líneas (juegos sin precio propio) | S54, A32 | hecho | `d9cfaba` |
+| R32 | Entrega de líneas de venta: marcar `entregada` y descontarla del conteo | D-07, A11 | **pendiente** (bloquea la exactitud del conteo) | — |
 
 ## Log
 
@@ -199,3 +200,34 @@ Límite de slice: 3 commits (`19eb495` docs, `a1b2ac4` backend + tests, `4c8e042
 Queda pendiente lo que D-07 pide para la lista de conteo y no se puede hacer todavía: marcar las
 unidades *vendidas, pendientes de entrega* exige el campo `entregada` en `LineaVenta`, que no
 existe. Sin eso, el que cuenta encuentra mercadería "de más" y desconfía del sistema.
+
+**L19 — El review del conteo encontró tres defectos críticos (2026-11-19):** el review nativo
+llegó a `correction_required` y después se trabó en un stop terminal
+(`corrupted_or_unverifiable_authority`), así que los hallazgos no se pudieron leer desde el
+gate. Se corrieron a ciegas con un revisor adversarial independiente sobre los tres ejes.
+Hallazgos confirmados contra el código y su corrección:
+
+1. **El ajuste caía siempre en `listo`** (`Movimiento.estado` por defecto), dejando `en_caja`
+   intacto y `listo` en negativo: armar después dejaba pasar cajas que no existen. Corregido:
+   el estado se deduce si el stock está en uno solo, y si está repartido entre caja y armado el
+   server **pide** cuál se contó en vez de adivinar.
+2. **El `esperado` se calculaba al enviar, no al contar.** Cualquier movimiento entre mirar la
+   hoja y apretar el botón se convertía en un ajuste fantasma. Corregido: el cliente manda el
+   número que tenía en pantalla y el server responde `409` sin escribir si ya no coincide.
+3. **La pantalla nunca mandaba motivo** y todo faltante quedaba con el texto constante
+   "Diferencia de conteo", que es lo único que la auditoría futura va a poder leer. Corregido:
+   hay campo de motivo y un faltante sin motivo se rechaza (D-08).
+4. Advertencias corregidas: la hoja cortaba en 30 filas y la búsqueda no entendía varias
+   palabras ni el `id_visible` de la etiqueta; los `400` de validación se mostraban como
+   "Error 400" mudo.
+
+**Queda abierto el hallazgo más grave, y es de alcance, no de código:** la venta descuenta en
+el acto (D-07) pero la entrega nunca se marca, porque `LineaVenta` no tiene `entregada`. El
+que cuenta encuentra mercadería "de más" y el conteo escribe un ajuste que **crea stock
+vendible que ya está vendido**: esas unidades se pueden vender dos veces. No se arregla
+adivinando una ventana de días. Es R32 (entrega) y hay que decidirlo antes de confiar en el
+conteo de un artículo que se haya vendido.
+
+Efecto sobre el review: el candidato cambió, así que el lineage `review-e29f4c64df57a036`
+quedó apuntando a un árbol que ya no existe. Después de decidir sobre la autoridad hay que
+abrir un review nuevo sobre el candidato corregido.
