@@ -75,6 +75,15 @@ export const api = {
   faltantes: () => pedir<Producto[]>("/api/precios/faltantes/"),
   cargarPrecios: (vigente_desde: string, valores: { producto: number; valor: string }[]) =>
     enviar<{ creados: number }>("/api/precios/", { vigente_desde, valores }),
+  stock: () =>
+    pedir<
+      { producto: number; id_visible: string; nombre: string; total: number; en_caja: number; listo: number }[]
+    >("/api/stock/"),
+  posiciones: () => pedir<{ id: number; etiqueta: string; almacen: number }[]>("/api/posiciones/"),
+  armar: (producto: number, cantidad: number) =>
+    enviar<{ referencia: string; armado: number }>("/api/movimientos/armar/", { producto, cantidad }),
+  transferir: (datos: { producto: number; cantidad: number; desde: number; hasta: number }) =>
+    enviar<{ referencia: string; transferido: number }>("/api/movimientos/transferir/", datos),
   preciosDe: (id: number) =>
     pedir<{ valor: string; vigente_desde: string }[]>(`/api/productos/${id}/precios/`),
   clientes: () => pedir<{ id: number; nombre: string; ciudad: string; habilitado_cuenta_corriente: boolean }[]>("/api/clientes/"),
