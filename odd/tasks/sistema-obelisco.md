@@ -2,8 +2,8 @@
 
 Sistema de gestión de stock para una empresa familiar multi-rubro (muebles, electrodomésticos,
 decoración, colchones, sillones, artículos de verano, oficina).
-Estado: **relevamiento en curso**. Sin implementación. Sin código.
-Documentación: `docs/relevamiento/`.
+Estado: **MVP implementado y desplegado** (release v0.8.0). El relevamiento está cerrado salvo
+R8 (validación del negocio). Documentación: `docs/relevamiento/`.
 
 ## Specs
 
@@ -94,8 +94,6 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 - **S57** — "Deben ser entre 40 y 50 proveedores diferentes... la mayoría nos comunicamos por
   WhatsApp o por teléfono"
 
-`[pendiente]` S39..Sn — se numeran al consolidar el alcance.
-
 ## Decisiones
 
 - **D1** — Se construye de cero. El sistema anterior no se integra ni se investiga.
@@ -118,39 +116,42 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 
 ## Tasks
 
-| ID | Tarea | Specs | Estado |
-|----|-------|-------|--------|
-| R1 | Placares y amoblamientos de cocina: ¿se fabrican o se encargan? | S4 | abierto |
-| R2 | Catálogo: categoría, tipo, color, medidas + discriminante de producto | S11 | parcial, falta H13 |
-| R3 | Dinámica de stock: entradas, estados, toma de inventario | S1, S12 | parcial |
-| R4 | Circuito de venta: seña, cambios, devoluciones | S1 | abierto |
-| R5 | Compras y proveedores | S1 | abierto |
-| R6 | No funcionales: hardware, hosting, presupuesto, mantenimiento | S1, S2 | abierto |
-| R7 | Consolidar alcance + MVP + roadmap | S1–S3 | bloqueado por respuestas |
-| R8 | Validar el alcance con el negocio | S3 | pendiente |
-| R9 | Precios: lista de fábrica, margen por rubro, vigencia, 5% efectivo | S1 | parcial |
-| R10 | Entrega y logística: rutas fijas, carga mínima, armado | S1 | capturado |
-| R11 | Cuenta corriente: vencimientos, mora, estado de cuenta | S1 | abierto |
-| R12 | Zona de influencia y ubicación del local | S1 | parcial |
-| R13 | ~~Sistema de stock incumbente~~ | — | descartada (D1) |
-| R14 | Dueño del dato de stock: quién carga y cuándo | S13 | parcial |
-| R15 | **MVP como conteo: hacer posible saber cuántos hay** | S12 | **a definir** |
-| R16 | Documento/lista para el contador (no comprobante fiscal) | S14, S16 | pendiente (D2) |
-| R17 | Ubicaciones: almacén → sector → posición, numeradas ahora; categoría como asignación | S17 | a definir (A14, A15) |
-| R18 | Cliente: ciudad, dirección, cuenta corriente | S18, S19 | capturado (A16) |
-| R19 | Devoluciones y cambios: movimiento con estado + ajuste de cuenta | S20 | capturado, falta política |
-| R20 | Identidad de producto: ID compartido, búsqueda antes de crear, control de duplicados | S24 | **crítico** (A19) |
-| R21 | Venta en cuotas: plan, vencimientos, saldo | S23 | capturado, a diseñar |
-| R22 | Usuarios y roles: uno por empleado, dos roles, desactivar sin borrar | S39, A24-A26 | a diseñar |
-| R23 | Aplicación web: responsive, sesión persistente por dispositivo | S40, A23, A25 | a diseñar |
-| R24 | Imágenes de producto: subida desde celular, asociadas al artículo | S45, A30 | a diseñar |
-| R25 | Carga progresiva del stock: entrada sin compra, sin evento de conteo | S41, A27 | a diseñar |
-| R26 | Baja lógica de artículos: ocultar conservando historial | S50, A29 | a diseñar |
-| R27 | Devolución a fábrica/proveedor por daño o falla | S43, S48 | a diseñar |
-| R28 | Segundo local: exhibición sin atención, con transferencias entre locales | S51 | capturado |
-| R29 | Pedido a medida: medición, plano, presupuesto, margen, confirmación, 15-20 días | S52, S53, S56 | fase 2 |
-| R30 | Proveedores: padrón de 40-50 con canal de contacto, sin órdenes de compra | S57 | a diseñar |
-| R31 | Venta con varias líneas (juegos sin precio propio) | S54, A32 | a diseñar |
+Estado real contra el código, no contra el relevamiento. `Evidencia` son los commits que
+sostienen el estado; sin commit, la fila es documentación o no está hecha.
+
+| ID | Tarea | Specs | Estado | Evidencia |
+|----|-------|-------|--------|-----------|
+| R1 | Placares y amoblamientos de cocina: ¿se fabrican o se encargan? | S4 | respondida (D12) | `7c332cf` |
+| R2 | Catálogo: categoría, tipo, color, medidas + discriminante de producto | S11 | hecho (H13 respondida) | `3e31340` `3897a57` `9ff164a` |
+| R3 | Dinámica de stock: entradas, estados, toma de inventario | S1, S12 | parcial: falta el conteo | `3e12e27` `92d6f25` |
+| R4 | Circuito de venta: seña, cambios, devoluciones | S1 | parcial: falta devolución | `d9cfaba` `d91ca5a` |
+| R5 | Compras y proveedores | S1, S57 | hecho | `3e31340` `4e14e65` `dcac8b5` |
+| R6 | No funcionales: hardware, hosting, presupuesto, mantenimiento | S1, S2 | hecho | `9a2c976` `59becb9` `7a5bb68` `8952ed9` |
+| R7 | Consolidar alcance + MVP + roadmap | S1–S3 | parcial: falta el roadmap | `7c332cf` |
+| R8 | Validar el alcance con el negocio | S3 | **bloqueado**: espera al negocio | — |
+| R9 | Precios: lista de fábrica, margen por rubro, vigencia, 5% efectivo | S1, S30, S32 | hecho | `6fc61ba` `35dcffb` `0193607` `22981eb` |
+| R10 | Entrega y logística: rutas fijas, carga mínima, armado | S1, S18 | parcial: armado sí, entrega sin marcar | `92d6f25` `11daff5` |
+| R11 | Cuenta corriente: vencimientos, mora, estado de cuenta | S1, S23, S29 | hecho | `08e14c6` `51a61e4` |
+| R12 | Zona de influencia y ubicación del local | S1, S21, S36 | parcial: la localidad no es entidad | `d9cfaba` |
+| R13 | ~~Sistema de stock incumbente~~ | — | descartada (D1) | `7c332cf` |
+| R14 | Dueño del dato de stock: quién carga y cuándo | S13, A20 | parcial: falta medir el tiempo de carga (D5) | `3e12e27` `73d88e3` |
+| R15 | **MVP como conteo: hacer posible saber cuántos hay** | S12, A15 | **en curso** | — |
+| R16 | Documento/lista para el contador (no comprobante fiscal) | S14, S16, S27 | pendiente (D2) | — |
+| R17 | Ubicaciones: almacén → sector → posición, numeradas ahora; categoría como asignación | S17, A14, A15 | hecho | `8603c4c` `9636c27` |
+| R18 | Cliente: ciudad, dirección, cuenta corriente | S18, S19, A16 | hecho | `08e14c6` `d9cfaba` |
+| R19 | Devoluciones y cambios: movimiento con estado + ajuste de cuenta | S20, A18 | parcial: falta circuito y política | `3e12e27` |
+| R20 | Identidad de producto: ID compartido, búsqueda antes de crear, control de duplicados | S24, A19 | hecho | `3e12e27` `3e31340` `9ff164a` |
+| R21 | Venta en cuotas: plan, vencimientos, saldo | S23 | hecho | `d9cfaba` `08e14c6` `51a61e4` |
+| R22 | Usuarios y roles: uno por empleado, dos roles, desactivar sin borrar | S39, A24-A26 | hecho | `73d88e3` `648eeb1` |
+| R23 | Aplicación web: responsive, sesión persistente por dispositivo | S40, A23, A25 | hecho | `3e12e27` `3897a57` `539a360` |
+| R24 | Imágenes de producto: subida desde celular, asociadas al artículo | S45, A30 | parcial: modelo sí, falta subida | `3e12e27` `9fc57e6` |
+| R25 | Carga progresiva del stock: entrada sin compra, sin evento de conteo | S41, A27 | hecho | `3e31340` `9ff164a` |
+| R26 | Baja lógica de artículos: ocultar conservando historial | S50, A29 | parcial: campo sí, falta la baja desde la app | `3e12e27` |
+| R27 | Devolución a fábrica/proveedor por daño o falla | S43, S48 | parcial: tipo y proveedor sí, falta circuito | `3e12e27` `4e14e65` |
+| R28 | Segundo local: exhibición sin atención, con transferencias entre locales | S51 | hecho | `92d6f25` `11daff5` `9636c27` |
+| R29 | Pedido a medida: medición, plano, presupuesto, margen, confirmación, 15-20 días | S52, S53, S56 | fase 2 (D12) | — |
+| R30 | Proveedores: padrón de 40-50 con canal de contacto, sin órdenes de compra | S57 | hecho | `4e14e65` `dcac8b5` |
+| R31 | Venta con varias líneas (juegos sin precio propio) | S54, A32 | hecho | `d9cfaba` |
 
 ## Log
 
@@ -178,3 +179,10 @@ Citas verbatim. Detalle y contexto en `docs/relevamiento/alcance.md`.
 **L16 — Bloque 15:** Q1 y Q2 respondidas. No fabrican: hay pedido a medida con fábrica externa (D12, fuera del MVP). Los juegos no tienen precio propio (D13) → sin entidad de combo. Dos locales: el nuevo es solo exhibición (S51) → contradice S5, que queda ampliada. Nuevas categorías: blanquería, barrales, cortinas de blackout (S55, S56). 40-50 proveedores por WhatsApp, sin órdenes de compra (S57). Evidencia directa de A14: las categorías están mezcladas en el espacio físico.
 
 **L16 — Cierre del bloque de alcance:** carga progresiva, sin evento de conteo (S41, A27). El sistema reemplaza el papel (D9). Sin pedidos por encargo (D11). Pesos, sin dólar (S43). Dañado vuelve al proveedor (S43). Garantía del fabricante (S48). Verano es categoría (S47). Sin colchones a medida (S49). Baja lógica con historial (S50, A29). Imágenes de producto (S45, A30). Proyecto propio sin plazo (D10) → Riesgo 15. Queda pendiente P10, P11 y reformular consignación.
+
+**L17 — Corrección de estado (2026-11-19):** pedido del usuario: "prosigue entonces". Se
+detectó que la tabla de Tasks seguía diciendo "a diseñar" sobre código ya desplegado en v0.8.0:
+el documento describía el relevamiento, no la implementación. Se reconcilia fila por fila contra
+el código y se agrega la columna `Evidencia` con el commit que sostiene cada estado. Nueve filas
+pasan a `hecho`, seis quedan `parcial` con el hueco nombrado, R8 sigue bloqueada por el negocio.
+Arranca R15 (conteo), que es el corazón del MVP y lo único que el ledger todavía no cubre.
