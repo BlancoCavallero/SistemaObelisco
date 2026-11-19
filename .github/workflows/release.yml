@@ -149,6 +149,28 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
+      - name: Diagnosticar la cuenta impersonada
+        # La direccion de impersonacion vive en el archivo de credenciales. Verla dice
+        # exactamente que cuenta se esta usando, que es lo que no se puede adivinar
+        # porque los secrets estan enmascarados en los logs.
+        run: |
+          archivo="${GOOGLE_GHA_CREDS_PATH:-${GOOGLE_APPLICATION_CREDENTIALS:-}}"
+          echo "archivo: ${archivo:-ninguno}"
+          python3 - "${archivo}" <<'PY'
+          import json
+          import sys
+
+          ruta = sys.argv[1]
+          if not ruta or not ruta.endswith(".json"):
+              print("sin archivo de credenciales en el entorno")
+              raise SystemExit(0)
+          datos = json.load(open(ruta, encoding="utf-8"))
+          print("tipo          :", datos.get("type"))
+          print("impersonacion :", datos.get("service_account_impersonation_url", "(ninguna)"))
+          entrada = datos.get("credential_source", {}).get("url", "(sin source)")
+          print("origen        :", entrada)
+          PY
+
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
