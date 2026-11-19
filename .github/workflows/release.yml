@@ -117,16 +117,43 @@ jobs:
             ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
             ${{ env.IMAGE }}:latest
 
+      - name: Validate the Google Cloud configuration
+        # Un provider mal escrito produce "invalid audience", que no dice que esta mal.
+        # Esto falla antes, con el formato esperado y como obtenerlo.
+        env:
+          WIF: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          PROJECT: ${{ vars.GCP_PROJECT_ID }}
+        run: |
+          set -eu
+          esperado='projects/<NUMERO>/locations/global/workloadIdentityPools/<POOL>/providers/<PROVIDER>'
+          if [ -z "${PROJECT:-}" ]; then
+            echo "::error::Falta la variable de repositorio GCP_PROJECT_ID (el ID del proyecto, no el nombre)."
+            exit 1
+          fi
+          if ! printf '%s' "$WIF" | grep -Eq '^projects/[0-9]+/locations/global/workloadIdentityPools/[^/]+/providers/[^/]+$'; then
+            echo "::error::GCP_WORKLOAD_IDENTITY_PROVIDER no tiene el formato esperado: $esperado"
+            echo "Valor recibido (largo ${#WIF}, primeras 12 letras): $(printf '%s' "$WIF" | cut -c1-12)..."
+            echo "Se obtiene con:"
+            echo "  gcloud iam workload-identity-pools providers describe <PROVIDER> \\"
+            echo "    --project=<PROJECT_ID> --location=global \\"
+            echo "    --workload-identity-pool=<POOL> --format='value(name)'"
+            echo "Ojo: usa el NUMERO del proyecto, no el ID."
+            exit 1
+          fi
+          echo "Provider con formato valido, proyecto $PROJECT"
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: obelisco
+          project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION }}
           image: ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
           env_vars: |

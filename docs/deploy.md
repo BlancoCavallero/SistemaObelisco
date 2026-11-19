@@ -108,8 +108,8 @@ Settings → Secrets and variables → Actions → **Secrets**:
 | `AWS_SECRET_ACCESS_KEY` | Credencial S3 |
 | `AWS_REGION` | `us-east-2` |
 | *(o bien)* `R2_*` | Alternativa Cloudflare |
-| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Google Cloud |
-| `GCP_SERVICE_ACCOUNT` | Google Cloud |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Google Cloud. Formato exacto, con el **numero** del proyecto: `projects/123456789/locations/global/workloadIdentityPools/<POOL>/providers/<PROVIDER>` |
+| `GCP_SERVICE_ACCOUNT` | `obelisco-deploy@<PROYECTO>.iam.gserviceaccount.com` |
 
 **Variables** (no secretas):
 
@@ -118,6 +118,7 @@ Settings → Secrets and variables → Actions → **Secrets**:
 | `DEPLOY_ENABLED` | `true` — sin esto el deploy se saltea y el CI queda verde |
 | `BACKUP_ENABLED` | `true` — sin esto el backup diario se saltea |
 | `GCP_REGION` | `us-central1` |
+| `GCP_PROJECT_ID` | El **ID** del proyecto (no el numero ni el nombre visible) |
 
 ## Como se dispara
 

@@ -39,6 +39,7 @@ SOLO_CI = {
     "GCP_SERVICE_ACCOUNT",
     "GCP_WORKLOAD_IDENTITY_PROVIDER",
     "GH_TOKEN",  # lo usa gh dentro del job, no la app
+    "WIF",  # alias interno del paso de validacion de Google Cloud
 }
 
 
