@@ -30,6 +30,9 @@ LEIDAS_POR_LA_APP = {
     "AWS_SECRET_ACCESS_KEY",
     "AWS_REGION",
     "APP_VERSION",
+    "DJANGO_SUPERUSER_USERNAME",
+    "DJANGO_SUPERUSER_PASSWORD",
+    "DJANGO_SUPERUSER_EMAIL",
 }
 
 # Variables que usa el pipeline, no la aplicacion (pg_dump necesita la conexion directa).

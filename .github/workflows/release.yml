@@ -113,6 +113,9 @@ jobs:
           push: true
           build-args: |
             APP_VERSION=${{ needs.version.outputs.version }}
+            DJANGO_SUPERUSER_USERNAME=${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+            DJANGO_SUPERUSER_PASSWORD=${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+            DJANGO_SUPERUSER_EMAIL=${{ secrets.DJANGO_SUPERUSER_EMAIL }}
           tags: |
             ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
             ${{ env.IMAGE }}:latest
@@ -209,6 +212,9 @@ jobs:
           image: ${{ env.IMAGE }}:${{ needs.version.outputs.version }}
           env_vars: |
             APP_VERSION=${{ needs.version.outputs.version }}
+            DJANGO_SUPERUSER_USERNAME=${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+            DJANGO_SUPERUSER_PASSWORD=${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+            DJANGO_SUPERUSER_EMAIL=${{ secrets.DJANGO_SUPERUSER_EMAIL }}
             SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
