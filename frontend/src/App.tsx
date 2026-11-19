@@ -6,6 +6,7 @@ import Cuentas from "./pages/Cuentas";
 import Deposito from "./pages/Deposito";
 import Inicio from "./pages/Inicio";
 import Precios from "./pages/Precios";
+import Producto from "./pages/Producto";
 import Recepcion from "./pages/Recepcion";
 import Venta from "./pages/Venta";
 
@@ -34,6 +35,12 @@ export default function App() {
   async function salir() {
     await api.logout().catch(() => undefined);
     setPerfil(null);
+  }
+
+  if (ruta.startsWith("/producto")) {
+    if (verificando) return <p className="contenedor estrecho estado">Verificando sesión…</p>;
+    if (!perfil) return <Login onEntrar={setPerfil} />;
+    return <Producto perfil={perfil} onSalir={salir} />;
   }
 
   if (ruta.startsWith("/cuentas")) {

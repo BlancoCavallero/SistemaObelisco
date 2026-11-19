@@ -8,6 +8,7 @@ from .views import (
     CategoriaViewSet,
     ColoresView,
     ProductoBuscarView,
+    ProductoDetalleView,
     ProductoListCreateView,
     TipoProductoViewSet,
 )
@@ -17,6 +18,7 @@ urlpatterns = [
     path("colores/", ColoresView.as_view(), name="colores"),
     path("productos/", ProductoListCreateView.as_view(), name="producto-list-create"),
     path("productos/buscar/", ProductoBuscarView.as_view(), name="producto-buscar"),
+    path("productos/<int:pk>/", ProductoDetalleView.as_view(), name="producto-detalle"),
     path("precios/", CargaPreciosView.as_view(), name="precios-carga"),
     path("precios/faltantes/", FaltantesView.as_view(), name="precios-faltantes"),
     path("productos/<int:pk>/precios/", HistorialPreciosView.as_view(), name="producto-precios"),

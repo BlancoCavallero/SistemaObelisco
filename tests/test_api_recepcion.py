@@ -195,3 +195,22 @@ def test_el_staff_ve_el_stock_disponible(cliente, usuario, producto):
     respuesta = cliente.get("/api/productos/buscar/")
 
     assert respuesta.data[0]["stock"] == 7
+
+
+def test_el_detalle_de_un_producto(cliente, producto):
+    respuesta = cliente.get(f"/api/productos/{producto.pk}/")
+
+    assert respuesta.status_code == 200
+    assert respuesta.data["id"] == producto.pk
+    assert respuesta.data["id_visible"] == producto.id_visible
+    assert "precio_venta" in respuesta.data
+
+
+def test_detalle_de_un_producto_inexistente(cliente):
+    assert cliente.get("/api/productos/999999/").status_code == 404
+
+
+def test_el_detalle_requiere_sesion(producto):
+    from rest_framework.test import APIClient
+
+    assert APIClient().get(f"/api/productos/{producto.pk}/").status_code in (401, 403)
