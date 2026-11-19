@@ -98,3 +98,16 @@ def test_una_entrada_sin_proveedor_sigue_siendo_valida(cliente, producto):
     )
     assert respuesta.status_code == 201
     assert Movimiento.objects.get().proveedor is None
+
+
+def test_los_canales_salen_de_la_api(cliente):
+    """El front no repite la lista de canales: si agrega uno, aparece solo."""
+    respuesta = cliente.get("/api/proveedores/canales/")
+
+    assert respuesta.status_code == 200
+    valores = [c["valor"] for c in respuesta.data]
+    assert valores == ["whatsapp", "telefono", "email", "viajante", "portal"]
+
+
+def test_los_canales_requieren_sesion():
+    assert APIClient().get("/api/proveedores/canales/").status_code in (401, 403)

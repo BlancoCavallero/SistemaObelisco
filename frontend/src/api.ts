@@ -49,6 +49,15 @@ export function enviar<T>(ruta: string, datos: unknown): Promise<T> {
   });
 }
 
+// PATCH para actualizaciones parciales: la ruta de detalle acepta patch, no post.
+export function parchear<T>(ruta: string, datos: unknown): Promise<T> {
+  return pedir<T>(ruta, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+    body: JSON.stringify(datos),
+  });
+}
+
 export const traer = pedir;
 
 export const api = {
@@ -143,6 +152,29 @@ export const api = {
     }>(`/api/clientes/${id}/cuenta/`),
   registrarPago: (id: number, monto: string, motivo = "") =>
     enviar<{ saldo: string }>(`/api/clientes/${id}/cuenta/pagos/`, { monto, motivo }),
+  proveedores: () =>
+    pedir<
+      {
+        id: number;
+        nombre: string;
+        canal: string;
+        contacto: string;
+        telefono: string;
+        email: string;
+        notas: string;
+      }[]
+    >("/api/proveedores/"),
+  canalesDeProveedor: () => pedir<{ valor: string; etiqueta: string }[]>("/api/proveedores/canales/"),
+  crearProveedor: (datos: {
+    nombre: string;
+    canal: string;
+    contacto?: string;
+    telefono?: string;
+    email?: string;
+    notas?: string;
+  }) => enviar<{ id: number }>("/api/proveedores/", datos),
+  desactivarProveedor: (id: number) =>
+    parchear<{ id: number }>(`/api/proveedores/${id}/`, { activo: false }),
   morosos: () =>
     pedir<{ cliente: { id: number; nombre: string; ciudad: string }; vencido: string }[]>(
       "/api/clientes/morosos/",
