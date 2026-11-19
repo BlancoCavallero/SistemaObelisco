@@ -5,6 +5,7 @@ from django.urls import path
 from .ubicaciones import AlmacenViewSet, PosicionViewSet, SectorViewSet
 from .views import (
     ArmarView,
+    ConteoView,
     HistorialMovimientosView,
     MovimientoListCreateView,
     StockListView,
@@ -13,6 +14,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("conteo/", ConteoView.as_view(), name="conteo"),
     path("movimientos/", MovimientoListCreateView.as_view(), name="movimiento-list-create"),
     path("movimientos/armar/", ArmarView.as_view(), name="movimiento-armar"),
     path("movimientos/transferir/", TransferirView.as_view(), name="movimiento-transferir"),

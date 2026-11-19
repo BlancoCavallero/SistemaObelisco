@@ -47,7 +47,25 @@ class MovimientoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"tipo": "Este tipo de movimiento se registra desde su propio circuito."}
             )
+        # D-08: an adjustment without a reason is a magic number. The count screen fills
+        # it in by default; a manual adjustment has to say why.
+        if not self.instance and tipo == "ajuste" and not (attrs.get("motivo") or "").strip():
+            raise serializers.ValidationError(
+                {"motivo": "Un ajuste necesita un motivo: sin el no se puede auditar."}
+            )
         return attrs
+
+
+class ConteoSerializer(serializers.Serializer):
+    """What the counter found, not the difference: the server derives it.
+
+    Asking the operator for the difference would let them apply the wrong sign, and the
+    ledger is the only place that knows what the system expects.
+    """
+
+    producto = serializers.PrimaryKeyRelatedField(queryset=Producto.objects.all())
+    contado = serializers.IntegerField(min_value=0)
+    motivo = serializers.CharField(required=False, allow_blank=True)
 
 
 class _OperacionParSerializer(serializers.Serializer):

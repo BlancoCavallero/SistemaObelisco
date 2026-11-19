@@ -3,7 +3,7 @@
 import uuid
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +13,7 @@ from catalogo.models import Producto
 from .models import Almacen, EstadoArticulo, Movimiento, Posicion, TipoMovimiento
 from .serializers import (
     ArmarSerializer,
+    ConteoSerializer,
     MovimientoSerializer,
     TransferirSerializer,
 )
@@ -111,6 +112,82 @@ class TransferirView(APIView):
         return Response(
             {"referencia": referencia, "transferido": datos["cantidad"]},
             status=status.HTTP_201_CREATED,
+        )
+
+
+class ConteoView(APIView):
+    """The count sheet, and the single adjustment a difference produces.
+
+    Counting is not a campaign with a closing ceremony (D-07): the operator compares what
+    is there against what the ledger says, and only a difference leaves a row. A count
+    that matches writes nothing, so the ledger does not fill with noise.
+
+    The sheet lists every active product, including the ones with no movements. Hiding
+    those would leave the counter with two physical chairs and nowhere to write them.
+    """
+
+    def get(self, request):
+        queryset = Producto.objects.select_related("tipo__categoria").filter(activo=True)
+        termino = request.query_params.get("q")
+        if termino:
+            queryset = queryset.filter(
+                Q(tipo__nombre__icontains=termino)
+                | Q(color__icontains=termino)
+                | Q(modelo__icontains=termino)
+            )
+
+        por_producto = {}
+        for fila in (
+            Movimiento.objects.values("producto", "estado")
+            .annotate(total=Sum("cantidad"))
+            .order_by()
+        ):
+            por_producto.setdefault(fila["producto"], {})[fila["estado"]] = fila["total"]
+
+        filas = []
+        for producto in queryset:
+            desglose = por_producto.get(producto.pk, {})
+            filas.append(
+                {
+                    "producto": producto.pk,
+                    "id_visible": producto.id_visible,
+                    "nombre": producto.nombre,
+                    "esperado": sum(desglose.values()),
+                    "en_caja": desglose.get(EstadoArticulo.EN_CAJA, 0),
+                    "listo": desglose.get(EstadoArticulo.LISTO, 0),
+                }
+            )
+        return Response({"filas": filas})
+
+    def post(self, request):
+        serializer = ConteoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        datos = serializer.validated_data
+
+        with transaction.atomic():
+            producto = Producto.objects.select_for_update().get(pk=datos["producto"].pk)
+            esperado = _stock(producto)
+            diferencia = datos["contado"] - esperado
+            motivo = (datos.get("motivo") or "").strip() or "Diferencia de conteo"
+
+            movimiento = None
+            if diferencia:
+                movimiento = Movimiento.objects.create(
+                    producto=producto,
+                    cantidad=diferencia,
+                    tipo=TipoMovimiento.AJUSTE,
+                    motivo=motivo,
+                    usuario=request.user,
+                )
+
+        return Response(
+            {
+                "esperado": esperado,
+                "contado": datos["contado"],
+                "ajuste": diferencia,
+                "movimiento": movimiento.pk if movimiento else None,
+            },
+            status=status.HTTP_201_CREATED if diferencia else status.HTTP_200_OK,
         )
 
 
