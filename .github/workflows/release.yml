@@ -200,6 +200,9 @@ jobs:
           # Sin esto el action vuelve en cuanto crea la revision, aunque el contenedor
           # no arranque: un deploy "exitoso" que no sirve nada.
           wait: true
+          # Cloud Run crea los servicios pidiendo autenticacion. El catalogo es publico
+          # y /health/ tiene que responder sin credenciales.
+          flags: --allow-unauthenticated
           service: obelisco
           project_id: ${{ vars.GCP_PROJECT_ID }}
           region: ${{ vars.GCP_REGION }}
