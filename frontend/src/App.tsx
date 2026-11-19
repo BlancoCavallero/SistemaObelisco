@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Perfil } from "./api";
 import CatalogoPagina from "./pages/Catalogo";
 import Login from "./pages/Login";
+import Deposito from "./pages/Deposito";
 import Inicio from "./pages/Inicio";
 import Precios from "./pages/Precios";
 import Recepcion from "./pages/Recepcion";
@@ -32,6 +33,12 @@ export default function App() {
   async function salir() {
     await api.logout().catch(() => undefined);
     setPerfil(null);
+  }
+
+  if (ruta.startsWith("/deposito")) {
+    if (verificando) return <p className="contenedor estrecho estado">Verificando sesión…</p>;
+    if (!perfil) return <Login onEntrar={setPerfil} />;
+    return <Deposito perfil={perfil} onSalir={salir} />;
   }
 
   if (ruta.startsWith("/precios")) {
