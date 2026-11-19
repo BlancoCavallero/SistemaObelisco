@@ -25,6 +25,14 @@ export type FilaConteo = {
   esperado: number;
   en_caja: number;
   listo: number;
+  vendidas_sin_entregar: number;
+};
+export type VentaPendiente = {
+  id: number;
+  fecha: string;
+  cliente: string;
+  ciudad: string;
+  lineas: { producto: number; nombre: string; cantidad: number }[];
 };
 
 function csrf(): string {
@@ -215,4 +223,7 @@ export const api = {
       estado?: string;
       movimiento: number | null;
     }>("/api/conteo/", datos),
+  ventasPendientes: () => pedir<{ ventas: VentaPendiente[] }>("/api/ventas/pendientes/"),
+  entregarVenta: (id: number) =>
+    enviar<{ venta: number; lineas: number }>(`/api/ventas/${id}/entregar/`, {}),
 };

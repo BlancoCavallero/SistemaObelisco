@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { api, type FilaConteo, type Perfil } from "../api";
+import { api, type FilaConteo, type Perfil, type VentaPendiente } from "../api";
 
 export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: () => void }) {
   const [texto, setTexto] = useState("");
   const [motivo, setMotivo] = useState("");
   const [filas, setFilas] = useState<FilaConteo[]>([]);
+  const [pendientes, setPendientes] = useState<VentaPendiente[]>([]);
   const [contados, setContados] = useState<Record<number, string>>({});
   const [estados, setEstados] = useState<Record<number, string>>({});
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -23,10 +24,33 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
       .then((respuesta) => vigente && setFilas(respuesta.filas))
       .catch(() => vigente && setFilas([]))
       .finally(() => vigente && setCargando(false));
+    api
+      .ventasPendientes()
+      .then((respuesta) => vigente && setPendientes(respuesta.ventas))
+      .catch(() => vigente && setPendientes([]));
     return () => {
       vigente = false;
     };
   }, [termino, version]);
+
+  async function entregar(venta: number) {
+    setOcupado(venta);
+    setError(null);
+    setMensaje(null);
+    try {
+      const resultado = await api.entregarVenta(venta);
+      setMensaje(
+        resultado.lineas === 0
+          ? "Esa venta no tenia lineas pendientes."
+          : `Entregada. ${resultado.lineas} linea${resultado.lineas === 1 ? "" : "s"} cerrada${resultado.lineas === 1 ? "" : "s"}.`,
+      );
+    } catch (causa) {
+      setError((causa as Error).message);
+    } finally {
+      setOcupado(null);
+      setVersion((n) => n + 1);
+    }
+  }
 
   function anotar(producto: number, valor: string) {
     setContados((previos) => ({ ...previos, [producto]: valor }));
@@ -113,6 +137,36 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
       {mensaje && <p className="exito" role="status">{mensaje}</p>}
       {error && <p className="error" role="alert">{error}</p>}
 
+      {pendientes.length > 0 && (
+        <section aria-label="Entregas pendientes">
+          <h2 className="titulo-seccion">Vendidas sin entregar</h2>
+          <p className="estado">
+            Estas unidades ya están vendidas y siguen en el depósito: contalas. Cuando salgan,
+            marcalas.
+          </p>
+          <ul className="lista">
+            {pendientes.slice(0, 10).map((venta) => (
+              <li key={venta.id} className="linea-venta">
+                <div>
+                  <strong>{venta.cliente || "Consumidor final"}</strong>
+                  <span>
+                    {venta.lineas.map((linea) => `${linea.cantidad} × ${linea.nombre}`).join(" · ")}
+                  </span>
+                </div>
+                <button
+                  className="link-fino"
+                  type="button"
+                  onClick={() => entregar(venta.id)}
+                  disabled={ocupado === venta.id}
+                >
+                  {ocupado === venta.id ? "Cerrando…" : "Entregar"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {cargando ? (
         <p className="estado">Trayendo la lista…</p>
       ) : filas.length === 0 ? (
@@ -126,6 +180,8 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
                 <span>
                   {fila.id_visible} · sistema: {fila.esperado} (caja {fila.en_caja}, armado{" "}
                   {fila.listo})
+                  {fila.vendidas_sin_entregar > 0 &&
+                    ` · ${fila.vendidas_sin_entregar} vendidas sin entregar`}
                 </span>
               </div>
               {fila.en_caja > 0 && fila.listo > 0 && (
