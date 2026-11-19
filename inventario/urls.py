@@ -8,6 +8,7 @@ from .views import (
     HistorialMovimientosView,
     MovimientoListCreateView,
     StockListView,
+    StockPorUbicacionView,
     TransferirView,
 )
 
@@ -21,6 +22,11 @@ urlpatterns = [
         name="producto-movimientos",
     ),
     path("stock/", StockListView.as_view(), name="stock-list"),
+    path(
+        "stock/ubicaciones/",
+        StockPorUbicacionView.as_view(),
+        name="stock-ubicaciones",
+    ),
     path("almacenes/", AlmacenViewSet.as_view({"get": "list", "post": "create"}), name="almacenes"),
     path("sectores/", SectorViewSet.as_view({"get": "list", "post": "create"}), name="sectores"),
     path(

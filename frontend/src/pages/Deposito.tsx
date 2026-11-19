@@ -12,6 +12,17 @@ type FilaStock = {
 
 type Posicion = { id: number; etiqueta: string; almacen: number };
 
+type Resumen = { id: number | null; codigo: string; nombre: string; total: number };
+type FilaUbicacion = {
+  producto: number;
+  id_visible: string;
+  nombre: string;
+  estado: string;
+  posicion: number | null;
+  etiqueta: string;
+  cantidad: number;
+};
+
 function Buscador({
   onElegir,
   etiqueta,
@@ -87,6 +98,12 @@ export default function Deposito({ perfil, onSalir }: { perfil: Perfil; onSalir:
   const [desde, setDesde] = useState<number | "">("");
   const [hasta, setHasta] = useState<number | "">("");
 
+  const [porUbicacion, setPorUbicacion] = useState<{ almacenes: Resumen[]; filas: FilaUbicacion[] }>({
+    almacenes: [],
+    filas: [],
+  });
+  const [almacen, setAlmacen] = useState<number | null>(null);
+
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -94,9 +111,13 @@ export default function Deposito({ perfil, onSalir }: { perfil: Perfil; onSalir:
   function refrescar() {
     api.stock().then(setStock).catch(() => setStock([]));
     api.posiciones().then(setPosiciones).catch(() => setPosiciones([]));
+    api
+      .stockUbicaciones(almacen ?? undefined)
+      .then(setPorUbicacion)
+      .catch(() => setPorUbicacion({ almacenes: [], filas: [] }));
   }
 
-  useEffect(refrescar, []);
+  useEffect(refrescar, [almacen]);
 
   const fila = (id: number | undefined) => stock.find((f) => f.producto === id);
 
@@ -249,8 +270,48 @@ export default function Deposito({ perfil, onSalir }: { perfil: Perfil; onSalir:
       {mensaje && <p className="exito" role="status">{mensaje}</p>}
       {error && <p className="error" role="alert">{error}</p>}
 
+      <section aria-label="Por ubicación">
+        <h2 className="titulo-seccion">Cuánto hay en cada lugar</h2>
+        <nav className="colecciones" aria-label="Filtrar por local">
+          <button
+            className="chip"
+            aria-pressed={almacen === null}
+            onClick={() => setAlmacen(null)}
+          >
+            Todo
+          </button>
+          {porUbicacion.almacenes.map((a) => (
+            <button
+              key={a.codigo}
+              className="chip"
+              aria-pressed={almacen === a.id}
+              onClick={() => setAlmacen(a.id)}
+            >
+              {a.codigo} · {a.total}
+            </button>
+          ))}
+        </nav>
+        {porUbicacion.filas.length === 0 ? (
+          <p className="estado">Sin mercadería ubicada todavía.</p>
+        ) : (
+          <ul className="lista">
+            {porUbicacion.filas.slice(0, 25).map((f) => (
+              <li key={`${f.producto}-${f.etiqueta}-${f.estado}`} className="linea-venta">
+                <div>
+                  <strong>{f.nombre}</strong>
+                  <span>
+                    {f.etiqueta} · {f.estado === "en_caja" ? "en caja" : "armado"}
+                  </span>
+                </div>
+                <span className="disponibles">{f.cantidad}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section aria-label="Stock">
-        <h2 className="titulo-seccion">En depósito</h2>
+        <h2 className="titulo-seccion">Total por artículo</h2>
         {stock.length === 0 ? (
           <p className="estado">Sin artículos cargados todavía.</p>
         ) : (
