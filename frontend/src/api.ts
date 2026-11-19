@@ -18,6 +18,14 @@ export type Producto = {
 export type Catalogo = { categorias: { nombre: string; total: number }[]; productos: Producto[] };
 export type Perfil = { id: number; username: string; nombre: string; rol: string };
 export type Movimiento = { id: number; producto: number; cantidad: number; tipo: string };
+export type FilaConteo = {
+  producto: number;
+  id_visible: string;
+  nombre: string;
+  esperado: number;
+  en_caja: number;
+  listo: number;
+};
 
 function csrf(): string {
   const par = document.cookie
@@ -181,4 +189,11 @@ export const api = {
     ),
   vender: (datos: Record<string, unknown>) => enviar<{ id: number; total: string; detalle: { nombre: string; cantidad: number; subtotal: string }[] }>("/api/ventas/", datos),
   movimiento: (datos: Record<string, unknown>) => enviar<Movimiento>("/api/movimientos/", datos),
+  conteoHoja: (q?: string) =>
+    pedir<{ filas: FilaConteo[] }>(`/api/conteo/${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  contar: (datos: { producto: number; contado: number; motivo?: string }) =>
+    enviar<{ esperado: number; contado: number; ajuste: number; movimiento: number | null }>(
+      "/api/conteo/",
+      datos,
+    ),
 };

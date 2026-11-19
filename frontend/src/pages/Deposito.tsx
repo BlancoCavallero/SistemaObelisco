@@ -167,6 +167,7 @@ export default function Deposito({ perfil, onSalir }: { perfil: Perfil; onSalir:
       <nav className="barra">
         <a href="/venta" className="link-fino">Cobrar</a>
         <a href="/recepcion" className="link-fino">Recibir</a>
+        <a href="/conteo" className="link-fino">Contar</a>
         <span>{perfil.nombre}</span>
         <button className="link-fino" onClick={onSalir}>Salir</button>
       </nav>

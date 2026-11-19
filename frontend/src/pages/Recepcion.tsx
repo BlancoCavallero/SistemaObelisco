@@ -97,6 +97,7 @@ export default function Recepcion({ perfil, onSalir }: { perfil: Perfil; onSalir
     <div className="contenedor estrecho">
       <nav className="barra">
         <a href="/" className="link-fino">Ver catálogo</a>
+        <a href="/conteo" className="link-fino">Contar</a>
         <span>{perfil.nombre}</span>
         <button className="link-fino" onClick={onSalir}>Salir</button>
       </nav>
