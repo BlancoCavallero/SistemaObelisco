@@ -40,6 +40,7 @@ SOLO_CI = {
     "GCP_WORKLOAD_IDENTITY_PROVIDER",
     "GH_TOKEN",  # lo usa gh dentro del job, no la app
     "WIF",  # alias interno del paso de validacion de Google Cloud
+    "SA",  # alias de GCP_SERVICE_ACCOUNT dentro del paso de validacion
 }
 
 
@@ -52,8 +53,9 @@ def test_los_workflows_solo_pasan_variables_que_la_app_lee(workflow):
     )
 
     assert pasadas, f"no se encontro ninguna variable en {workflow}"
-    assert pasadas <= LEIDAS_POR_LA_APP | SOLO_CI, (
-        f"{workflow} pasa variables que la app no lee: " + str(sorted(pasadas - LEIDAS_POR_LA_APP))
+    desconocidas = pasadas - (LEIDAS_POR_LA_APP | SOLO_CI)
+    assert not desconocidas, (
+        f"{workflow} pasa variables que nadie lee: " + str(sorted(desconocidas))
     )
 
 
