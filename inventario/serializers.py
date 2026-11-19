@@ -23,6 +23,7 @@ class MovimientoSerializer(serializers.ModelSerializer):
             "motivo",
             "posicion",
             "referencia",
+            "proveedor",
         ]
         read_only_fields = ["fecha", "usuario"]
 
