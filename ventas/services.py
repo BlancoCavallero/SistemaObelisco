@@ -152,6 +152,10 @@ def unidades_sin_entregar():
         for fila in LineaVenta.objects.filter(venta__confirmada=True, entregada=False)
         .values("producto")
         .annotate(total=Sum("cantidad"))
+        # El Meta.ordering de LineaVenta no puede decidir el GROUP BY: se limpia para que
+        # el agregado sea por producto y no por linea. Medido: hoy ya agrupa bien, pero no
+        # se deja al azar de la version de Django.
+        .order_by()
     }
 
 

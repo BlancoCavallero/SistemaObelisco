@@ -215,6 +215,18 @@ class ConteoView(APIView):
                 estado = elegido or (con_stock[0] if con_stock else EstadoArticulo.LISTO)
                 cambios = [(estado, diferencia)]
             else:
+                if datos.get("estado"):
+                    # Elegir una pila deja la otra mintiendo. El estado es para lo que
+                    # sobra; lo que falta se descuenta de donde hay stock.
+                    return Response(
+                        {
+                            "estado": (
+                                "Lo que falta no va a un estado: se descuenta de donde "
+                                "hay stock."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 cambios = _repartir_faltante(por_estado, -diferencia)
                 if cambios is None:
                     # Lo que falta esta vendido y sigue en el deposito: hay que entregarlo

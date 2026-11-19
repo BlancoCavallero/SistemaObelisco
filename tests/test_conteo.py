@@ -170,13 +170,14 @@ def test_el_conteo_deja_el_stock_en_lo_contado(cliente, usuario, producto):
     assert stock[producto.pk] == 3
 
 
-def test_el_ajuste_va_al_estado_que_se_conto(cliente, usuario, producto):
+def test_el_faltante_sale_de_la_pila_que_tiene_stock(cliente, usuario, producto):
     """Contar cajas no puede dejar el armado en negativo."""
     _mov(producto, usuario, 5, estado="en_caja")
 
-    respuesta = _contar(cliente, producto, 3, 5, estado="en_caja", motivo="Faltaban dos")
+    respuesta = _contar(cliente, producto, 3, 5, motivo="Faltaban dos")
 
     assert respuesta.status_code == 201
+    assert [(a["estado"], a["cantidad"]) for a in respuesta.data["ajustes"]] == [("en_caja", -2)]
     stock = {f["producto"]: f for f in cliente.get("/api/stock/").data}[producto.pk]
     assert stock["total"] == 3
     assert stock["en_caja"] == 3
@@ -407,3 +408,49 @@ def test_al_marcar_la_entrega_la_hoja_deja_de_contar_esas_unidades(
 
     assert fila["esperado"] == 3
     assert fila["vendidas_sin_entregar"] == 0
+
+
+# --- el refuter del review final encontro dos defectos mas --------------------
+
+
+def test_dos_ventas_sin_entregar_del_mismo_producto_se_suman(cliente, usuario, producto):
+    """Dos lineas pendientes del mismo articulo son cuatro unidades, no una.
+
+    El `Meta.ordering` de LineaVenta mete el id en el GROUP BY: sin `order_by()` el
+    agregado devuelve una fila por linea y el diccionario se queda con la ultima.
+    """
+    import datetime as dt
+    from decimal import Decimal
+
+    from catalogo.models import PrecioLista
+
+    PrecioLista.objects.create(
+        producto=producto, valor=Decimal("10000"), vigente_desde=dt.date(2026, 1, 1)
+    )
+    _mov(producto, usuario, 9)
+    for _ in range(2):
+        respuesta = cliente.post(
+            "/api/ventas/",
+            {"medio_pago": "efectivo", "lineas": [{"producto": producto.pk, "cantidad": 2}]},
+            format="json",
+        )
+        assert respuesta.status_code == 201, respuesta.data
+
+    fila = next(
+        f for f in cliente.get("/api/conteo/").data["filas"] if f["producto"] == producto.pk
+    )
+
+    assert fila["vendidas_sin_entregar"] == 4
+    assert fila["esperado"] == 9
+
+
+def test_un_faltante_con_estado_se_rechaza(cliente, usuario, producto):
+    """El estado es para lo que sobra; en un faltante no se acepta y no se ignora."""
+    _mov(producto, usuario, 2, estado="en_caja")
+    _mov(producto, usuario, 3, estado="listo")
+
+    respuesta = _contar(cliente, producto, 4, 5, estado="en_caja", motivo="Faltaba una")
+
+    assert respuesta.status_code == 400
+    assert "estado" in respuesta.data
+    assert Movimiento.objects.count() == 2
