@@ -166,7 +166,19 @@ jobs:
               raise SystemExit(0)
           datos = json.load(open(ruta, encoding="utf-8"))
           print("tipo          :", datos.get("type"))
-          print("impersonacion :", datos.get("service_account_impersonation_url", "(ninguna)"))
+          import re
+
+          url = datos.get("service_account_impersonation_url") or ""
+          encontrado = re.search(r"serviceAccounts/([^:]+):", url)
+          if encontrado:
+              correo = encontrado.group(1)
+              # Un fragmento no coincide con el valor del secret, asi que GitHub no lo
+              # enmascara: alcanza para comparar sin exponer la cuenta.
+              print("cuenta        :", correo[:12] + "..." + correo[-26:])
+              print("largo         :", len(correo))
+              print("esperada      : obelisco-dep...count@sistemaobelisco.iam.gserviceaccount.com")
+          else:
+              print("cuenta        : no se pudo leer la direccion")
           entrada = datos.get("credential_source", {}).get("url", "(sin source)")
           print("origen        :", entrada)
           PY
