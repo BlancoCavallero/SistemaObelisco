@@ -4,10 +4,13 @@ from django.db import migrations, models
 
 
 def marcar_historicas_entregadas(apps, schema_editor):
-    """Lo vendido antes de que existiera la entrega ya salio del deposito.
+    """Lo vendido antes de que existiera la entrega se toma como entregado.
 
-    Sin esto, `default=False` deja cada linea historica como pendiente de entrega: el
-    conteo la suma al fisico y un conteo real escribe un ajuste negativo que borra stock.
+    Supuesto explicito: cuando se escribio esta migracion la aplicacion no tenia ventas
+    confirmadas cargadas, asi que no habia unidades vendidas fisicamente en el deposito.
+    Si algun dia se corre sobre una base con ventas sin entregar, esas unidades quedan
+    invisibles para el conteo: hay que revisarlas a mano ANTES del primer conteo. Ver
+    docs/deploy.md, "Antes del primer conteo".
     """
     apps.get_model("ventas", "LineaVenta").objects.filter(
         venta__confirmada=True
