@@ -2,9 +2,10 @@
 
 from django.urls import path
 
-from .views import ProveedorViewSet
+from .views import CanalesView, ProveedorViewSet
 
 urlpatterns = [
+    path("proveedores/canales/", CanalesView.as_view(), name="proveedores-canales"),
     path(
         "proveedores/",
         ProveedorViewSet.as_view(
