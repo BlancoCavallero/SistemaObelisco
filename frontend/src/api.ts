@@ -43,10 +43,20 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   if (respuesta.status === 204) return undefined as T;
   const cuerpo = await respuesta.json().catch(() => null);
   if (!respuesta.ok) {
-    const detalle = cuerpo?.detail ?? `Error ${respuesta.status}`;
+    const detalle = cuerpo?.detail ?? primerError(cuerpo) ?? `Error ${respuesta.status}`;
     throw new Error(detalle);
   }
   return cuerpo as T;
+}
+
+// Un 400 de validacion trae {campo: "mensaje"}: mostrarlo, no un "Error 400" mudo.
+function primerError(cuerpo: unknown): string | null {
+  if (!cuerpo || typeof cuerpo !== "object") return null;
+  for (const valor of Object.values(cuerpo as Record<string, unknown>)) {
+    if (typeof valor === "string") return valor;
+    if (Array.isArray(valor) && typeof valor[0] === "string") return valor[0];
+  }
+  return null;
 }
 
 export function enviar<T>(ruta: string, datos: unknown): Promise<T> {
@@ -191,9 +201,18 @@ export const api = {
   movimiento: (datos: Record<string, unknown>) => enviar<Movimiento>("/api/movimientos/", datos),
   conteoHoja: (q?: string) =>
     pedir<{ filas: FilaConteo[] }>(`/api/conteo/${q ? `?q=${encodeURIComponent(q)}` : ""}`),
-  contar: (datos: { producto: number; contado: number; motivo?: string }) =>
-    enviar<{ esperado: number; contado: number; ajuste: number; movimiento: number | null }>(
-      "/api/conteo/",
-      datos,
-    ),
+  contar: (datos: {
+    producto: number;
+    contado: number;
+    esperado: number;
+    estado?: string;
+    motivo?: string;
+  }) =>
+    enviar<{
+      esperado: number;
+      contado: number;
+      ajuste: number;
+      estado?: string;
+      movimiento: number | null;
+    }>("/api/conteo/", datos),
 };

@@ -1,27 +1,19 @@
 import { useEffect, useState } from "react";
 import { api, type FilaConteo, type Perfil } from "../api";
 
-const VISIBLES = 30;
-
 export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: () => void }) {
   const [texto, setTexto] = useState("");
+  const [motivo, setMotivo] = useState("");
   const [filas, setFilas] = useState<FilaConteo[]>([]);
   const [contados, setContados] = useState<Record<number, string>>({});
+  const [estados, setEstados] = useState<Record<number, string>>({});
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<number | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [version, setVersion] = useState(0);
 
   const termino = texto.trim();
-
-  function traerHoja(busqueda: string) {
-    setCargando(true);
-    api
-      .conteoHoja(busqueda.length >= 2 ? busqueda : undefined)
-      .then((respuesta) => setFilas(respuesta.filas))
-      .catch(() => setFilas([]))
-      .finally(() => setCargando(false));
-  }
 
   useEffect(() => {
     let vigente = true;
@@ -34,7 +26,7 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
     return () => {
       vigente = false;
     };
-  }, [termino]);
+  }, [termino, version]);
 
   function anotar(producto: number, valor: string) {
     setContados((previos) => ({ ...previos, [producto]: valor }));
@@ -47,7 +39,15 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
     setError(null);
     setMensaje(null);
     try {
-      const resultado = await api.contar({ producto: fila.producto, contado: Number(valor) });
+      const resultado = await api.contar({
+        producto: fila.producto,
+        contado: Number(valor),
+        // El numero que el operador tenia en pantalla: si el stock se movio, el server
+        // rechaza en vez de inventar un ajuste con la diferencia de la carrera.
+        esperado: fila.esperado,
+        estado: estados[fila.producto] || undefined,
+        motivo: motivo.trim() || undefined,
+      });
       setMensaje(
         resultado.ajuste === 0
           ? `${fila.nombre}: coincide con ${resultado.contado}. No se escribió nada.`
@@ -58,11 +58,16 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
         delete copia[fila.producto];
         return copia;
       });
-      traerHoja(termino);
+      setEstados((previos) => {
+        const copia = { ...previos };
+        delete copia[fila.producto];
+        return copia;
+      });
     } catch (causa) {
       setError((causa as Error).message);
     } finally {
       setOcupado(null);
+      setVersion((n) => n + 1);
     }
   }
 
@@ -94,6 +99,15 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
             inputMode="search"
           />
         </label>
+        <label>
+          Si falta algo, ¿por qué?
+          <input
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="se rompió, no llegó, se entregó de más…"
+            autoComplete="off"
+          />
+        </label>
       </div>
 
       {mensaje && <p className="exito" role="status">{mensaje}</p>}
@@ -105,7 +119,7 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
         <p className="estado">No hay artículos que coincidan.</p>
       ) : (
         <ul className="lista">
-          {filas.slice(0, VISIBLES).map((fila) => (
+          {filas.map((fila) => (
             <li key={fila.producto} className="linea-venta">
               <div>
                 <strong>{fila.nombre}</strong>
@@ -114,6 +128,19 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
                   {fila.listo})
                 </span>
               </div>
+              {fila.en_caja > 0 && fila.listo > 0 && (
+                <select
+                  value={estados[fila.producto] ?? ""}
+                  onChange={(e) =>
+                    setEstados((previos) => ({ ...previos, [fila.producto]: e.target.value }))
+                  }
+                  aria-label={`Qué contaste de ${fila.nombre}`}
+                >
+                  <option value="">caja o armado…</option>
+                  <option value="en_caja">en caja</option>
+                  <option value="listo">armado</option>
+                </select>
+              )}
               <input
                 type="number"
                 inputMode="numeric"
@@ -138,12 +165,6 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
             </li>
           ))}
         </ul>
-      )}
-
-      {filas.length > VISIBLES && (
-        <p className="estado">
-          Se muestran {VISIBLES} de {filas.length}. Afiná la búsqueda para ver el resto.
-        </p>
       )}
     </div>
   );
