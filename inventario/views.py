@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from catalogo.models import Producto
 
-from .models import EstadoArticulo, Movimiento, TipoMovimiento
+from .models import Almacen, EstadoArticulo, Movimiento, Posicion, TipoMovimiento
 from .serializers import (
     ArmarSerializer,
     MovimientoSerializer,
@@ -194,3 +194,86 @@ class HistorialMovimientosView(APIView):
                 "movimientos": list(reversed(filas)),
             }
         )
+
+
+class StockPorUbicacionView(APIView):
+    """How much is in each place, including the stock that has no location.
+
+    The ledger never requires a position (A15), so part of the stock is unlocated. It
+    has to be shown explicitly: hiding it makes the per-store totals disagree with the
+    product total, and then nobody trusts either number.
+    """
+
+    def get(self, request):
+        filas_brutas = (
+            Movimiento.objects.values("producto", "posicion", "estado")
+            .annotate(total=Sum("cantidad"))
+            .order_by()
+        )
+
+        almacen_filtro = request.query_params.get("almacen")
+        productos = {p.pk: p for p in Producto.objects.select_related("tipo__categoria")}
+        posiciones = {
+            p.pk: p
+            for p in _posiciones_con_ruta()
+        }
+
+        filas = []
+        for fila in filas_brutas:
+            if fila["total"] == 0:
+                continue
+            posicion = posiciones.get(fila["posicion"])
+            if almacen_filtro and (
+                posicion is None or str(posicion.sector.almacen_id) != str(almacen_filtro)
+            ):
+                continue
+            producto = productos.get(fila["producto"])
+            if producto is None:
+                continue
+            filas.append(
+                {
+                    "producto": producto.pk,
+                    "id_visible": producto.id_visible,
+                    "nombre": producto.nombre,
+                    "estado": fila["estado"],
+                    "posicion": fila["posicion"],
+                    "etiqueta": (
+                        f"{posicion.sector.almacen.codigo}/{posicion.sector.codigo}/"
+                        f"{posicion.codigo}"
+                        if posicion
+                        else "sin ubicar"
+                    ),
+                    "cantidad": fila["total"],
+                }
+            )
+
+        totales = {}
+        for fila in filas:
+            clave = fila["etiqueta"].split("/")[0] if fila["posicion"] else "sin ubicar"
+            totales[clave] = totales.get(clave, 0) + fila["cantidad"]
+
+        almacenes = [
+            {
+                "id": almacen.pk,
+                "codigo": almacen.codigo,
+                "nombre": almacen.nombre,
+                "total": totales.get(almacen.codigo, 0),
+            }
+            for almacen in Almacen.objects.all()
+        ]
+        if totales.get("sin ubicar"):
+            almacenes.append(
+                {
+                    "id": None,
+                    "codigo": "sin ubicar",
+                    "nombre": "Mercaderia sin ubicacion asignada",
+                    "total": totales["sin ubicar"],
+                }
+            )
+
+        filas.sort(key=lambda f: (f["nombre"], f["etiqueta"], f["estado"]))
+        return Response({"almacenes": almacenes, "filas": filas})
+
+
+def _posiciones_con_ruta():
+    return Posicion.objects.select_related("sector__almacen")

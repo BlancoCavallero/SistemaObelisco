@@ -79,6 +79,19 @@ export const api = {
     pedir<
       { producto: number; id_visible: string; nombre: string; total: number; en_caja: number; listo: number }[]
     >("/api/stock/"),
+  stockUbicaciones: (almacen?: number) =>
+    pedir<{
+      almacenes: { id: number | null; codigo: string; nombre: string; total: number }[];
+      filas: {
+        producto: number;
+        id_visible: string;
+        nombre: string;
+        estado: string;
+        posicion: number | null;
+        etiqueta: string;
+        cantidad: number;
+      }[];
+    }>(`/api/stock/ubicaciones/${almacen ? `?almacen=${almacen}` : ""}`),
   posiciones: () => pedir<{ id: number; etiqueta: string; almacen: number }[]>("/api/posiciones/"),
   armar: (producto: number, cantidad: number) =>
     enviar<{ referencia: string; armado: number }>("/api/movimientos/armar/", { producto, cantidad }),
