@@ -122,6 +122,7 @@ jobs:
         # Esto falla antes, con el formato esperado y como obtenerlo.
         env:
           WIF: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           PROJECT: ${{ vars.GCP_PROJECT_ID }}
         run: |
           set -eu
@@ -140,7 +141,16 @@ jobs:
             echo "Ojo: usa el NUMERO del proyecto, no el ID."
             exit 1
           fi
-          echo "Provider con formato valido, proyecto $PROJECT"
+          # Esta confundido de secret produce "Unable to acquire impersonated
+          # credentials", que no dice nada. La cuenta es un EMAIL, no una ruta.
+          if ! printf '%s' "${SA:-}" | grep -Eq '^[a-zA-Z0-9._-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$'; then
+            echo "::error::GCP_SERVICE_ACCOUNT tiene que ser el email de la cuenta."
+            echo "Se espera algo como: obelisco-deploy@<PROYECTO>.iam.gserviceaccount.com"
+            echo "Se recibio algo de ${#SA} caracteres que empieza con: $(printf '%s' "${SA:-}" | cut -c1-16)..."
+            echo "Si empieza con 'projects/', se pego la ruta del pool por error."
+            exit 1
+          fi
+          echo "Provider con formato valido y cuenta $SA"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
