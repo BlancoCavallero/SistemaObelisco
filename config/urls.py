@@ -21,6 +21,7 @@ urlpatterns = [
     path("api/", include("catalogo.urls")),
     path("api/", include("inventario.urls")),
     path("api/", include("ventas.urls")),
+    path("api/", include("proveedores.urls")),
     # Everything that is not API, admin, health or a static file belongs to the SPA.
     re_path(r"^(?!api/|admin/|health/|static/|media/).*$", ensure_csrf_cookie(spa), name="spa"),
 ]

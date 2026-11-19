@@ -109,6 +109,13 @@ class Movimiento(models.Model):
         Posicion, on_delete=models.PROTECT, null=True, blank=True, related_name="movimientos"
     )
     referencia = models.CharField(max_length=64, blank=True, default="")
+    proveedor = models.ForeignKey(
+        "proveedores.Proveedor",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="movimientos",
+    )
     creado_en = models.DateTimeField(auto_now_add=True)
 
     objects = MovimientoQuerySet.as_manager()
