@@ -3,7 +3,17 @@
 El conteo no es una campana ni una pantalla que se cierra (D-07): es una sesion en la que
 alguien compara lo que hay contra lo que el sistema dice y registra la diferencia. Si el
 numero coincide no se escribe nada; si no coincide, se escribe UN movimiento de ajuste con
-su motivo y su autor. Nunca se edita el saldo: A28 pide poder auditar despues.
+su motivo, su autor y el estado que se conto. Nunca se edita el saldo: A28 pide auditar
+despues.
+
+Dos reglas sostienen que el ajuste no invente datos:
+
+- El cliente manda el `esperado` que tenia en pantalla. Si entre que miro y apreto el boton
+  entro o salio mercaderia, el server se niega (409) en lugar de convertir esa carrera en un
+  ajuste fantasma.
+- El ajuste va al estado que se conto. Si el stock esta repartido entre caja y armado, el
+  server no adivina: pide que se elija. Adivinar deja `listo` en negativo y `en_caja`
+  intacto, y despues armar deja pasar cajas que no existen.
 """
 
 import pytest
@@ -28,6 +38,14 @@ def _mov(producto, usuario, cantidad, tipo="entrada_compra", estado="listo", pos
         tipo=tipo,
         estado=estado,
         posicion=posicion,
+    )
+
+
+def _contar(cliente, producto, contado, esperado, **extra):
+    return cliente.post(
+        "/api/conteo/",
+        {"producto": producto.pk, "contado": contado, "esperado": esperado, **extra},
+        format="json",
     )
 
 
@@ -87,33 +105,44 @@ def test_la_hoja_suma_todos_los_estados_y_ubicaciones(cliente, usuario, producto
     assert fila["listo"] == 3
 
 
+def test_la_busqueda_acepta_varias_palabras(cliente, usuario, producto):
+    """El que cuenta tipea 'sillon gris', no filtros exactos."""
+    respuesta = cliente.get("/api/conteo/", {"q": "sillon gris"})
+
+    assert [f["producto"] for f in respuesta.data["filas"]] == [producto.pk]
+
+
+def test_la_busqueda_acepta_el_id_visible(cliente, usuario, producto):
+    """El articulo tiene una etiqueta pegada: tipear esa etiqueta lo tiene que encontrar."""
+    respuesta = cliente.get("/api/conteo/", {"q": producto.id_visible})
+
+    assert [f["producto"] for f in respuesta.data["filas"]] == [producto.pk]
+
+
 # --- registrar el conteo -----------------------------------------------------
 
 
 def test_contar_de_menos_registra_un_ajuste_negativo(cliente, usuario, producto):
     _mov(producto, usuario, 5)
 
-    respuesta = cliente.post(
-        "/api/conteo/", {"producto": producto.pk, "contado": 3}, format="json"
-    )
+    respuesta = _contar(cliente, producto, 3, 5, motivo="Se rompieron dos")
 
     assert respuesta.status_code == 201
     assert respuesta.data["esperado"] == 5
     assert respuesta.data["contado"] == 3
     assert respuesta.data["ajuste"] == -2
-    assert respuesta.data["movimiento"] is not None
+    assert respuesta.data["estado"] == "listo"
     ajuste = Movimiento.objects.get(pk=respuesta.data["movimiento"])
     assert ajuste.tipo == "ajuste"
     assert ajuste.cantidad == -2
-    assert ajuste.motivo == "Diferencia de conteo"
+    assert ajuste.estado == "listo"
+    assert ajuste.motivo == "Se rompieron dos"
     assert ajuste.usuario == usuario
     assert Movimiento.objects.count() == 2
 
 
 def test_contar_de_mas_registra_un_ajuste_positivo(cliente, usuario, producto):
-    respuesta = cliente.post(
-        "/api/conteo/", {"producto": producto.pk, "contado": 2}, format="json"
-    )
+    respuesta = _contar(cliente, producto, 2, 0)
 
     assert respuesta.status_code == 201
     assert respuesta.data["ajuste"] == 2
@@ -124,9 +153,7 @@ def test_contar_lo_esperado_no_escribe_nada(cliente, usuario, producto):
     """Un conteo que coincide no deja rastro: el ledger no guarda ruido."""
     _mov(producto, usuario, 5)
 
-    respuesta = cliente.post(
-        "/api/conteo/", {"producto": producto.pk, "contado": 5}, format="json"
-    )
+    respuesta = _contar(cliente, producto, 5, 5)
 
     assert respuesta.status_code == 200
     assert respuesta.data == {"esperado": 5, "contado": 5, "ajuste": 0, "movimiento": None}
@@ -135,30 +162,84 @@ def test_contar_lo_esperado_no_escribe_nada(cliente, usuario, producto):
 
 def test_el_conteo_deja_el_stock_en_lo_contado(cliente, usuario, producto):
     _mov(producto, usuario, 5)
-    cliente.post("/api/conteo/", {"producto": producto.pk, "contado": 3}, format="json")
+    _contar(cliente, producto, 3, 5, motivo="Faltaban dos")
 
     stock = {f["producto"]: f["total"] for f in cliente.get("/api/stock/").data}
 
     assert stock[producto.pk] == 3
 
 
+def test_el_ajuste_va_al_estado_que_se_conto(cliente, usuario, producto):
+    """Contar cajas no puede dejar el armado en negativo."""
+    _mov(producto, usuario, 5, estado="en_caja")
+
+    respuesta = _contar(cliente, producto, 3, 5, estado="en_caja", motivo="Faltaban dos")
+
+    assert respuesta.status_code == 201
+    stock = {f["producto"]: f for f in cliente.get("/api/stock/").data}[producto.pk]
+    assert stock["total"] == 3
+    assert stock["en_caja"] == 3
+    assert stock["listo"] == 0
+
+
+def test_si_el_stock_esta_repartido_hay_que_decir_que_se_conto(cliente, usuario, producto):
+    """Elegir por el operador es inventar cual de las dos pilas se achico."""
+    _mov(producto, usuario, 2, estado="en_caja")
+    _mov(producto, usuario, 3, estado="listo")
+
+    respuesta = _contar(cliente, producto, 4, 5, motivo="Faltaba una")
+
+    assert respuesta.status_code == 400
+    assert "estado" in respuesta.data
+    assert Movimiento.objects.count() == 2
+
+
+def test_un_faltante_exige_motivo(cliente, usuario, producto):
+    """Un ajuste sin motivo es un numero magico y no se puede auditar (D-08)."""
+    _mov(producto, usuario, 5)
+
+    respuesta = _contar(cliente, producto, 3, 5)
+
+    assert respuesta.status_code == 400
+    assert "motivo" in respuesta.data
+    assert Movimiento.objects.count() == 1
+
+
+def test_un_sobrante_no_exige_motivo(cliente, usuario, producto):
+    """Que aparezca mercaderia no necesita explicacion para corregir el numero."""
+    respuesta = _contar(cliente, producto, 2, 0)
+
+    assert respuesta.status_code == 201
+    assert Movimiento.objects.get().motivo == "Diferencia de conteo"
+
+
 def test_el_motivo_del_conteo_se_conserva(cliente, usuario, producto):
     _mov(producto, usuario, 5)
-    respuesta = cliente.post(
-        "/api/conteo/",
-        {"producto": producto.pk, "contado": 4, "motivo": "Se rompio una pata"},
-        format="json",
-    )
+    respuesta = _contar(cliente, producto, 4, 5, motivo="Se rompio una pata")
 
     assert Movimiento.objects.get(pk=respuesta.data["movimiento"]).motivo == "Se rompio una pata"
+
+
+def test_si_el_esperado_cambio_se_rechaza_sin_escribir(cliente, usuario, producto):
+    """Entre mirar la hoja y apretar el boton puede entrar o salir mercaderia.
+
+    Contar contra el numero que el operador ya no esta viendo convierte una carrera en un
+    ajuste fantasma. Se rechaza y se le muestran los numeros de ahora.
+    """
+    _mov(producto, usuario, 5)
+    _mov(producto, usuario, -2, tipo="venta")
+
+    respuesta = _contar(cliente, producto, 5, 5, motivo="Conteo")
+
+    assert respuesta.status_code == 409
+    assert respuesta.data["esperado"] == 3
+    assert Movimiento.objects.count() == 2
 
 
 def test_el_conteo_no_admite_cantidad_negativa(cliente, usuario, producto):
     _mov(producto, usuario, 5)
 
-    respuesta = cliente.post(
-        "/api/conteo/", {"producto": producto.pk, "contado": -1}, format="json"
-    )
+    respuesta = _contar(cliente, producto, -1, 5)
 
     assert respuesta.status_code == 400
     assert "contado" in respuesta.data
@@ -166,7 +247,9 @@ def test_el_conteo_no_admite_cantidad_negativa(cliente, usuario, producto):
 
 
 def test_el_conteo_necesita_un_producto_del_catalogo(cliente, usuario):
-    respuesta = cliente.post("/api/conteo/", {"producto": 9999, "contado": 1}, format="json")
+    respuesta = cliente.post(
+        "/api/conteo/", {"producto": 9999, "contado": 1, "esperado": 0}, format="json"
+    )
 
     assert respuesta.status_code == 400
     assert "producto" in respuesta.data

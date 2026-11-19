@@ -57,14 +57,19 @@ class MovimientoSerializer(serializers.ModelSerializer):
 
 
 class ConteoSerializer(serializers.Serializer):
-    """What the counter found, not the difference: the server derives it.
+    """What the operator counted, plus the number they were looking at.
 
-    Asking the operator for the difference would let them apply the wrong sign, and the
-    ledger is the only place that knows what the system expects.
+    The difference is derived on the server: asking for it would let the sign be applied
+    backwards. `esperado` is the number the sheet showed, echoed back so a movement that
+    happens while the operator walks the depot cannot become a phantom adjustment.
     """
 
     producto = serializers.PrimaryKeyRelatedField(queryset=Producto.objects.all())
     contado = serializers.IntegerField(min_value=0)
+    esperado = serializers.IntegerField(min_value=0)
+    estado = serializers.ChoiceField(
+        choices=EstadoArticulo.choices, required=False, allow_blank=True
+    )
     motivo = serializers.CharField(required=False, allow_blank=True)
 
 

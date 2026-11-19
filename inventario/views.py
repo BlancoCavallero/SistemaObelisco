@@ -1,5 +1,6 @@
 """Warehouse endpoints: register movements and read derived stock."""
 
+import re
 import uuid
 
 from django.db import transaction
@@ -128,13 +129,17 @@ class ConteoView(APIView):
 
     def get(self, request):
         queryset = Producto.objects.select_related("tipo__categoria").filter(activo=True)
-        termino = request.query_params.get("q")
-        if termino:
-            queryset = queryset.filter(
-                Q(tipo__nombre__icontains=termino)
-                | Q(color__icontains=termino)
-                | Q(modelo__icontains=termino)
-            )
+        termino = (request.query_params.get("q") or "").strip()
+        for token in termino.split():
+            por_id = _filtro_por_id(token)
+            if por_id is not None:
+                queryset = queryset.filter(por_id)
+            else:
+                queryset = queryset.filter(
+                    Q(tipo__nombre__icontains=token)
+                    | Q(color__icontains=token)
+                    | Q(modelo__icontains=token)
+                )
 
         por_producto = {}
         for fila in (
@@ -166,28 +171,80 @@ class ConteoView(APIView):
 
         with transaction.atomic():
             producto = Producto.objects.select_for_update().get(pk=datos["producto"].pk)
-            esperado = _stock(producto)
-            diferencia = datos["contado"] - esperado
-            motivo = (datos.get("motivo") or "").strip() or "Diferencia de conteo"
+            por_estado = {
+                fila["estado"]: fila["total"]
+                for fila in producto.movimientos.values("estado").annotate(total=Sum("cantidad"))
+            }
+            esperado = sum(por_estado.values())
 
-            movimiento = None
-            if diferencia:
-                movimiento = Movimiento.objects.create(
-                    producto=producto,
-                    cantidad=diferencia,
-                    tipo=TipoMovimiento.AJUSTE,
-                    motivo=motivo,
-                    usuario=request.user,
+            # The operator sends the number they saw. If the ledger moved while they walked
+            # the depot, turning that race into an adjustment invents stock: stop here.
+            if esperado != datos["esperado"]:
+                return Response(
+                    {
+                        "detail": "El stock cambio desde que abriste la hoja: mira el numero.",
+                        "esperado": esperado,
+                    },
+                    status=status.HTTP_409_CONFLICT,
                 )
+
+            diferencia = datos["contado"] - esperado
+            if diferencia == 0:
+                return Response(
+                    {
+                        "esperado": esperado,
+                        "contado": datos["contado"],
+                        "ajuste": 0,
+                        "movimiento": None,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            estado = datos.get("estado") or ""
+            con_stock = [clave for clave, total in por_estado.items() if total]
+            if not estado:
+                if len(con_stock) == 1:
+                    estado = con_stock[0]
+                elif not con_stock:
+                    estado = EstadoArticulo.LISTO
+                else:
+                    # Picking one for the operator invents which pile shrank, and leaves the
+                    # other pile lying: `listo` goes negative while `en_caja` stays intact.
+                    return Response(
+                        {
+                            "estado": (
+                                "El stock esta repartido entre caja y armado: "
+                                "decí cual contaste."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            motivo = (datos.get("motivo") or "").strip()
+            if diferencia < 0 and not motivo:
+                return Response(
+                    {"motivo": "Un faltante necesita motivo: es lo que despues explica el numero."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            movimiento = Movimiento.objects.create(
+                producto=producto,
+                cantidad=diferencia,
+                tipo=TipoMovimiento.AJUSTE,
+                estado=estado,
+                motivo=motivo or "Diferencia de conteo",
+                usuario=request.user,
+            )
 
         return Response(
             {
                 "esperado": esperado,
                 "contado": datos["contado"],
                 "ajuste": diferencia,
-                "movimiento": movimiento.pk if movimiento else None,
+                "estado": estado,
+                "movimiento": movimiento.pk,
             },
-            status=status.HTTP_201_CREATED if diferencia else status.HTTP_200_OK,
+            status=status.HTTP_201_CREATED,
         )
 
 
@@ -354,3 +411,16 @@ class StockPorUbicacionView(APIView):
 
 def _posiciones_con_ruta():
     return Posicion.objects.select_related("sector__almacen")
+
+
+_ID_VISIBLE = re.compile(r"^(?P<prefijo>[A-Za-z]{3})-(?P<numero>\d+)$")
+
+
+def _filtro_por_id(token):
+    """Match the label glued to the article: `MUE-0007` or just `7`."""
+    coincidencia = _ID_VISIBLE.match(token)
+    if coincidencia:
+        return Q(pk=int(coincidencia.group("numero")))
+    if token.isdigit():
+        return Q(pk=int(token))
+    return None
