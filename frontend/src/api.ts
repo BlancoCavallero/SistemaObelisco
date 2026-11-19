@@ -97,6 +97,23 @@ export const api = {
     enviar<{ referencia: string; armado: number }>("/api/movimientos/armar/", { producto, cantidad }),
   transferir: (datos: { producto: number; cantidad: number; desde: number; hasta: number }) =>
     enviar<{ referencia: string; transferido: number }>("/api/movimientos/transferir/", datos),
+  producto: (id: number) => pedir<Producto>(`/api/productos/${id}/`),
+  movimientosDe: (id: number) =>
+    pedir<{
+      producto: { id: number; id_visible: string; nombre: string };
+      total: number;
+      movimientos: {
+        id: number;
+        fecha: string;
+        tipo: string;
+        cantidad: number;
+        estado: string;
+        motivo: string;
+        referencia: string;
+        usuario: string;
+        saldo_acumulado: number;
+      }[];
+    }>(`/api/productos/${id}/movimientos/`),
   preciosDe: (id: number) =>
     pedir<{ valor: string; vigente_desde: string }[]>(`/api/productos/${id}/precios/`),
   clientes: () =>

@@ -322,9 +322,9 @@ export default function Deposito({ perfil, onSalir }: { perfil: Perfil; onSalir:
                   <strong>{f.nombre}</strong>
                   <span>{f.id_visible}</span>
                 </div>
-                <span className="disponibles">
+                <a className="link-fino" href={`/producto?id=${f.producto}`}>
                   caja {f.en_caja} · listo {f.listo}
-                </span>
+                </a>
               </li>
             ))}
           </ul>

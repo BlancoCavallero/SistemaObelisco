@@ -99,3 +99,14 @@ class ColoresView(APIView):
 
     def get(self, _request):
         return Response([{"valor": valor, "etiqueta": etiqueta} for valor, etiqueta in COLORES])
+
+
+class ProductoDetalleView(generics.RetrieveAPIView):
+    """One product, for the staff sheet.
+
+    Fetching the whole list to show one article works with ten products and stops
+    working with five hundred, so the detail has its own route.
+    """
+
+    serializer_class = ProductoSerializer
+    queryset = Producto.objects.select_related("tipo__categoria")
