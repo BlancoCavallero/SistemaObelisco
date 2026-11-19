@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from catalogo.models import Producto
 from core.models import Parametro
 from inventario.models import Movimiento, TipoMovimiento
 from inventario.stock import stock_de
@@ -154,8 +155,17 @@ def unidades_sin_entregar():
     }
 
 
+@transaction.atomic
 def marcar_entrega(venta):
-    """La entrega es logistica: no toca el ledger. Devuelve cuantas lineas cerro."""
+    """La entrega es logistica: no toca el ledger. Devuelve cuantas lineas cerro.
+
+    Toma el lock del producto, el mismo que usa el conteo para leer las pendientes: sin el,
+    una entrega que commitea en el medio del conteo deja al conteo con pendientes viejas y
+    el 409 no las ve.
+    """
     if not venta.confirmada:
         raise ValueError("Una venta sin confirmar no se entrega.")
+
+    ids = sorted(set(venta.lineas.values_list("producto_id", flat=True)))
+    list(Producto.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
     return venta.lineas.filter(entregada=False).update(entregada=True)

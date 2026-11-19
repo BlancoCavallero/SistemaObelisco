@@ -3,6 +3,17 @@
 from django.db import migrations, models
 
 
+def marcar_historicas_entregadas(apps, schema_editor):
+    """Lo vendido antes de que existiera la entrega ya salio del deposito.
+
+    Sin esto, `default=False` deja cada linea historica como pendiente de entrega: el
+    conteo la suma al fisico y un conteo real escribe un ajuste negativo que borra stock.
+    """
+    apps.get_model("ventas", "LineaVenta").objects.filter(
+        venta__confirmada=True
+    ).update(entregada=True)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -15,4 +26,5 @@ class Migration(migrations.Migration):
             name='entregada',
             field=models.BooleanField(default=False),
         ),
+        migrations.RunPython(marcar_historicas_entregadas, migrations.RunPython.noop),
     ]

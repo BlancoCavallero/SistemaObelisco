@@ -11,8 +11,9 @@ Dos reglas sostienen que el ajuste no invente datos:
 - El cliente manda el `esperado` que tenia en pantalla. Si entre que miro y apreto el boton
   entro o salio mercaderia, el server se niega (409) en lugar de convertir esa carrera en un
   ajuste fantasma.
-- El ajuste va al estado que se conto. Si el stock esta repartido entre caja y armado, el
-  server no adivina: pide que se elija. Adivinar deja `listo` en negativo y `en_caja`
+- Lo que sobra va a un estado, el que se indico o el unico que tiene stock. Lo que falta
+  NO se pregunta: se descuenta de lo que hay, de la pila mas grande a la mas chica, sin
+  bajar ningun estado de cero. Elegir una sola pila deja `listo` en negativo y `en_caja`
   intacto, y despues armar deja pasar cajas que no existen.
 """
 
@@ -131,8 +132,8 @@ def test_contar_de_menos_registra_un_ajuste_negativo(cliente, usuario, producto)
     assert respuesta.data["esperado"] == 5
     assert respuesta.data["contado"] == 3
     assert respuesta.data["ajuste"] == -2
-    assert respuesta.data["estado"] == "listo"
-    ajuste = Movimiento.objects.get(pk=respuesta.data["movimiento"])
+    assert [(a["estado"], a["cantidad"]) for a in respuesta.data["ajustes"]] == [("listo", -2)]
+    ajuste = Movimiento.objects.get(pk=respuesta.data["ajustes"][0]["movimiento"])
     assert ajuste.tipo == "ajuste"
     assert ajuste.cantidad == -2
     assert ajuste.estado == "listo"
@@ -156,7 +157,7 @@ def test_contar_lo_esperado_no_escribe_nada(cliente, usuario, producto):
     respuesta = _contar(cliente, producto, 5, 5)
 
     assert respuesta.status_code == 200
-    assert respuesta.data == {"esperado": 5, "contado": 5, "ajuste": 0, "movimiento": None}
+    assert respuesta.data == {"esperado": 5, "contado": 5, "ajuste": 0, "ajustes": []}
     assert Movimiento.objects.count() == 1
 
 
@@ -182,16 +183,32 @@ def test_el_ajuste_va_al_estado_que_se_conto(cliente, usuario, producto):
     assert stock["listo"] == 0
 
 
-def test_si_el_stock_esta_repartido_hay_que_decir_que_se_conto(cliente, usuario, producto):
-    """Elegir por el operador es inventar cual de las dos pilas se achico."""
+def test_el_faltante_sale_del_estado_que_tiene_stock(cliente, usuario, producto):
+    """Repartido, el faltante sale de la pila mas grande: ningun estado queda negativo."""
     _mov(producto, usuario, 2, estado="en_caja")
     _mov(producto, usuario, 3, estado="listo")
 
     respuesta = _contar(cliente, producto, 4, 5, motivo="Faltaba una")
 
-    assert respuesta.status_code == 400
-    assert "estado" in respuesta.data
-    assert Movimiento.objects.count() == 2
+    assert respuesta.status_code == 201
+    assert [(a["estado"], a["cantidad"]) for a in respuesta.data["ajustes"]] == [("listo", -1)]
+    stock = {f["producto"]: f for f in cliente.get("/api/stock/").data}[producto.pk]
+    assert (stock["total"], stock["en_caja"], stock["listo"]) == (4, 2, 2)
+
+
+def test_el_faltante_se_reparte_entre_las_pilas_con_stock(cliente, usuario, producto):
+    """Un movimiento por estado consumido: empate por nombre, nunca por debajo de cero."""
+    _mov(producto, usuario, 2, estado="listo")
+    _mov(producto, usuario, 2, estado="en_caja")
+
+    respuesta = _contar(cliente, producto, 1, 4, motivo="Faltaban tres")
+
+    assert [(a["estado"], a["cantidad"]) for a in respuesta.data["ajustes"]] == [
+        ("en_caja", -2),
+        ("listo", -1),
+    ]
+    stock = {f["producto"]: f for f in cliente.get("/api/stock/").data}[producto.pk]
+    assert (stock["total"], stock["en_caja"], stock["listo"]) == (1, 0, 1)
 
 
 def test_un_faltante_exige_motivo(cliente, usuario, producto):
@@ -217,7 +234,8 @@ def test_el_motivo_del_conteo_se_conserva(cliente, usuario, producto):
     _mov(producto, usuario, 5)
     respuesta = _contar(cliente, producto, 4, 5, motivo="Se rompio una pata")
 
-    assert Movimiento.objects.get(pk=respuesta.data["movimiento"]).motivo == "Se rompio una pata"
+    movimiento = respuesta.data["ajustes"][0]["movimiento"]
+    assert Movimiento.objects.get(pk=movimiento).motivo == "Se rompio una pata"
 
 
 def test_si_el_esperado_cambio_se_rechaza_sin_escribir(cliente, usuario, producto):
@@ -234,6 +252,18 @@ def test_si_el_esperado_cambio_se_rechaza_sin_escribir(cliente, usuario, product
     assert respuesta.status_code == 409
     assert respuesta.data["esperado"] == 3
     assert Movimiento.objects.count() == 2
+
+
+def test_un_sobrante_va_al_estado_que_se_indico(cliente, usuario, producto):
+    """Lo que sobra si es una eleccion del operador: sabe donde aparecio."""
+    _mov(producto, usuario, 1, estado="en_caja")
+
+    respuesta = _contar(cliente, producto, 3, 1, estado="listo")
+
+    assert respuesta.status_code == 201
+    assert [(a["estado"], a["cantidad"]) for a in respuesta.data["ajustes"]] == [("listo", 2)]
+    stock = {f["producto"]: f for f in cliente.get("/api/stock/").data}[producto.pk]
+    assert (stock["en_caja"], stock["listo"]) == (1, 2)
 
 
 def test_el_conteo_no_admite_cantidad_negativa(cliente, usuario, producto):
@@ -346,6 +376,21 @@ def test_contar_lo_que_hay_con_una_venta_sin_entregar_no_inventa_stock(
     assert respuesta.status_code == 200
     assert respuesta.data["ajuste"] == 0
     assert Movimiento.objects.count() == 2
+
+
+def test_un_faltante_que_el_ledger_no_puede_absorber_nombra_lo_sin_entregar(
+    cliente, con_venta_sin_entregar
+):
+    """Lo que falta es justo lo que esta vendido y sigue en el deposito: entregalo.
+
+    Sin motivo, para que el rechazo sea por el stock y no por el motivo: el faltante no se
+    puede escribir aunque se explique.
+    """
+    respuesta = _contar(cliente, con_venta_sin_entregar, 0, 5)
+
+    assert respuesta.status_code == 400
+    assert "2 vendidas sin entregar" in str(respuesta.data)
+    assert Movimiento.objects.filter(tipo="ajuste").count() == 0
 
 
 def test_al_marcar_la_entrega_la_hoja_deja_de_contar_esas_unidades(

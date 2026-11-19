@@ -220,8 +220,8 @@ export const api = {
       esperado: number;
       contado: number;
       ajuste: number;
-      estado?: string;
-      movimiento: number | null;
+      // Un renglon por estado tocado: un faltante sale de varias pilas a la vez.
+      ajustes: { estado: string; cantidad: number; movimiento: number }[];
     }>("/api/conteo/", datos),
   ventasPendientes: () => pedir<{ ventas: VentaPendiente[] }>("/api/ventas/pendientes/"),
   entregarVenta: (id: number) =>

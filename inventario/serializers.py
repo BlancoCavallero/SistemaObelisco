@@ -67,6 +67,8 @@ class ConteoSerializer(serializers.Serializer):
     producto = serializers.PrimaryKeyRelatedField(queryset=Producto.objects.all())
     contado = serializers.IntegerField(min_value=0)
     esperado = serializers.IntegerField(min_value=0)
+    # Solo vale para lo que sobra. Un faltante se descuenta del stock que hay: elegir una
+    # pila deja la otra en negativo.
     estado = serializers.ChoiceField(
         choices=EstadoArticulo.choices, required=False, allow_blank=True
     )

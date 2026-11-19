@@ -59,6 +59,9 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
   async function registrar(fila: FilaConteo) {
     const valor = contados[fila.producto];
     if (valor === undefined || valor === "") return;
+    // El estado solo se pregunta cuando sobra: un faltante lo reparte el server entre las
+    // pilas que tienen stock, porque elegir una deja la otra en negativo.
+    const sobra = Number(valor) > fila.esperado;
     setOcupado(fila.producto);
     setError(null);
     setMensaje(null);
@@ -69,13 +72,15 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
         // El numero que el operador tenia en pantalla: si el stock se movio, el server
         // rechaza en vez de inventar un ajuste con la diferencia de la carrera.
         esperado: fila.esperado,
-        estado: estados[fila.producto] || undefined,
+        estado: sobra ? estados[fila.producto] || undefined : undefined,
         motivo: motivo.trim() || undefined,
       });
       setMensaje(
         resultado.ajuste === 0
           ? `${fila.nombre}: coincide con ${resultado.contado}. No se escribió nada.`
-          : `${fila.nombre}: el sistema decía ${resultado.esperado}, contaste ${resultado.contado} → ajuste ${resultado.ajuste > 0 ? "+" : ""}${resultado.ajuste}.`,
+          : `${fila.nombre}: el sistema decía ${resultado.esperado}, contaste ${resultado.contado} → ${resultado.ajustes
+              .map((ajuste) => `${ajuste.cantidad > 0 ? "+" : ""}${ajuste.cantidad} en ${ajuste.estado}`)
+              .join(", ")}.`,
       );
       setContados((previos) => {
         const copia = { ...previos };
@@ -184,15 +189,17 @@ export default function Conteo({ perfil, onSalir }: { perfil: Perfil; onSalir: (
                     ` · ${fila.vendidas_sin_entregar} vendidas sin entregar`}
                 </span>
               </div>
-              {fila.en_caja > 0 && fila.listo > 0 && (
+              {contados[fila.producto] !== undefined &&
+                contados[fila.producto] !== "" &&
+                Number(contados[fila.producto]) > fila.esperado && (
                 <select
                   value={estados[fila.producto] ?? ""}
                   onChange={(e) =>
                     setEstados((previos) => ({ ...previos, [fila.producto]: e.target.value }))
                   }
-                  aria-label={`Qué contaste de ${fila.nombre}`}
+                  aria-label={`A qué estado van las ${fila.nombre} que sobran`}
                 >
-                  <option value="">caja o armado…</option>
+                  <option value="">Lo que sobra va a…</option>
                   <option value="en_caja">en caja</option>
                   <option value="listo">armado</option>
                 </select>

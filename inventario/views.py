@@ -118,7 +118,7 @@ class TransferirView(APIView):
 
 
 class ConteoView(APIView):
-    """The count sheet, and the single adjustment a difference produces.
+    """The count sheet, and the adjustment a difference produces.
 
     Counting is not a campaign with a closing ceremony (D-07): the operator compares what
     is there against what the ledger says, and only a difference leaves a row. A count
@@ -198,30 +198,33 @@ class ConteoView(APIView):
             diferencia = datos["contado"] - esperado
             if diferencia == 0:
                 return Response(
-                    {
-                        "esperado": esperado,
-                        "contado": datos["contado"],
-                        "ajuste": 0,
-                        "movimiento": None,
-                    },
+                    {"esperado": esperado, "contado": datos["contado"], "ajuste": 0, "ajustes": []},
                     status=status.HTTP_200_OK,
                 )
 
-            estado = datos.get("estado") or ""
-            con_stock = [clave for clave, total in por_estado.items() if total]
-            if not estado:
-                if len(con_stock) == 1:
-                    estado = con_stock[0]
-                elif not con_stock:
-                    estado = EstadoArticulo.LISTO
-                else:
-                    # Picking one for the operator invents which pile shrank, and leaves the
-                    # other pile lying: `listo` goes negative while `en_caja` stays intact.
+            con_stock = [clave for clave, total in por_estado.items() if total > 0]
+            if diferencia > 0:
+                # Lo que sobra no deja ningun estado en negativo: va a uno solo.
+                elegido = datos.get("estado") or ""
+                if not elegido and len(con_stock) > 1:
+                    # Picking one for the operator invents which pile grew.
+                    return Response(
+                        {"estado": "El stock esta repartido: decí a cual va lo que sobra."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                estado = elegido or (con_stock[0] if con_stock else EstadoArticulo.LISTO)
+                cambios = [(estado, diferencia)]
+            else:
+                cambios = _repartir_faltante(por_estado, -diferencia)
+                if cambios is None:
+                    # Lo que falta esta vendido y sigue en el deposito: hay que entregarlo
+                    # antes de descontar, o el ajuste resta mercaderia que todavia esta ahi.
+                    pendientes = unidades_sin_entregar().get(producto.pk, 0)
                     return Response(
                         {
-                            "estado": (
-                                "El stock esta repartido entre caja y armado: "
-                                "decí cual contaste."
+                            "detail": (
+                                f"Al deposito no le alcanza para absorber {-diferencia}: hay "
+                                f"{pendientes} vendidas sin entregar. Entregalas antes de ajustar."
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
@@ -234,23 +237,21 @@ class ConteoView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            movimiento = Movimiento.objects.create(
-                producto=producto,
-                cantidad=diferencia,
-                tipo=TipoMovimiento.AJUSTE,
-                estado=estado,
-                motivo=motivo or "Diferencia de conteo",
-                usuario=request.user,
-            )
+            ajustes = []
+            for estado, cantidad in cambios:
+                fila = Movimiento.objects.create(
+                    producto=producto,
+                    cantidad=cantidad,
+                    tipo=TipoMovimiento.AJUSTE,
+                    estado=estado,
+                    motivo=motivo or "Diferencia de conteo",
+                    usuario=request.user,
+                )
+                ajustes.append({"estado": estado, "cantidad": cantidad, "movimiento": fila.pk})
 
         return Response(
-            {
-                "esperado": esperado,
-                "contado": datos["contado"],
-                "ajuste": diferencia,
-                "estado": estado,
-                "movimiento": movimiento.pk,
-            },
+            {"esperado": esperado, "contado": datos["contado"], "ajuste": diferencia,
+             "ajustes": ajustes},
             status=status.HTTP_201_CREATED,
         )
 
@@ -414,6 +415,24 @@ class StockPorUbicacionView(APIView):
 
         filas.sort(key=lambda f: (f["nombre"], f["etiqueta"], f["estado"]))
         return Response({"almacenes": almacenes, "filas": filas})
+
+
+def _repartir_faltante(por_estado, faltante):
+    """Take the shortage from the piles that have stock, biggest first, never below zero.
+
+    Ties break by state name so the plan is deterministic. `None` means the ledger cannot
+    absorb it: what is missing are the units sold and not yet delivered.
+    """
+    restante = faltante
+    cambios = []
+    for estado, total in sorted(por_estado.items(), key=lambda fila: (-fila[1], fila[0])):
+        if restante == 0:
+            break
+        if total > 0:
+            toma = min(total, restante)
+            cambios.append((estado, -toma))
+            restante -= toma
+    return cambios if restante == 0 else None
 
 
 def _posiciones_con_ruta():
