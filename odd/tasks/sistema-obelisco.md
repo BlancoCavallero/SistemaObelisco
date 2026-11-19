@@ -135,7 +135,7 @@ sostienen el estado; sin commit, la fila es documentación o no está hecha.
 | R12 | Zona de influencia y ubicación del local | S1, S21, S36 | parcial: la localidad no es entidad | `d9cfaba` |
 | R13 | ~~Sistema de stock incumbente~~ | — | descartada (D1) | `7c332cf` |
 | R14 | Dueño del dato de stock: quién carga y cuándo | S13, A20 | parcial: falta medir el tiempo de carga (D5) | `3e12e27` `73d88e3` |
-| R15 | **MVP como conteo: hacer posible saber cuántos hay** | S12, A15 | **en curso** | — |
+| R15 | **MVP como conteo: hacer posible saber cuántos hay** | S12, A15 | hecho | `a1b2ac4` `4c8e042` |
 | R16 | Documento/lista para el contador (no comprobante fiscal) | S14, S16, S27 | pendiente (D2) | — |
 | R17 | Ubicaciones: almacén → sector → posición, numeradas ahora; categoría como asignación | S17, A14, A15 | hecho | `8603c4c` `9636c27` |
 | R18 | Cliente: ciudad, dirección, cuenta corriente | S18, S19, A16 | hecho | `08e14c6` `d9cfaba` |
@@ -186,3 +186,16 @@ el documento describía el relevamiento, no la implementación. Se reconcilia fi
 el código y se agrega la columna `Evidencia` con el commit que sostiene cada estado. Nueve filas
 pasan a `hecho`, seis quedan `parcial` con el hueco nombrado, R8 sigue bloqueada por el negocio.
 Arranca R15 (conteo), que es el corazón del MVP y lo único que el ledger todavía no cubre.
+
+**L18 — R15 hecho: el conteo cierra el MVP (2026-11-19):** `POST /api/conteo/` compara lo
+contado contra el ledger y escribe **un** `ajuste` con autor y motivo; un conteo que coincide
+no deja fila. `GET /api/conteo/` es la hoja: todos los artículos activos, incluidos los que no
+tienen movimientos, porque un artículo que existe físicamente y no tiene historial tiene que
+poder anotarse. El ajuste suelto ahora exige motivo (D-08: sin motivo es un número mágico).
+Decisión de alcance: no se registra almacén en el conteo, porque A15 deja la ubicación vacía y
+`Movimiento` no tiene FK a almacén; agregarla es otra tarea, no ésta.
+
+Límite de slice: 3 commits (`19eb495` docs, `a1b2ac4` backend + tests, `4c8e042` pantalla).
+Queda pendiente lo que D-07 pide para la lista de conteo y no se puede hacer todavía: marcar las
+unidades *vendidas, pendientes de entrega* exige el campo `entregada` en `LineaVenta`, que no
+existe. Sin eso, el que cuenta encuentra mercadería "de más" y desconfía del sistema.
