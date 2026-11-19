@@ -18,6 +18,22 @@ export type Producto = {
 export type Catalogo = { categorias: { nombre: string; total: number }[]; productos: Producto[] };
 export type Perfil = { id: number; username: string; nombre: string; rol: string };
 export type Movimiento = { id: number; producto: number; cantidad: number; tipo: string };
+export type FilaConteo = {
+  producto: number;
+  id_visible: string;
+  nombre: string;
+  esperado: number;
+  en_caja: number;
+  listo: number;
+  vendidas_sin_entregar: number;
+};
+export type VentaPendiente = {
+  id: number;
+  fecha: string;
+  cliente: string;
+  ciudad: string;
+  lineas: { producto: number; nombre: string; cantidad: number }[];
+};
 
 function csrf(): string {
   const par = document.cookie
@@ -35,10 +51,20 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   if (respuesta.status === 204) return undefined as T;
   const cuerpo = await respuesta.json().catch(() => null);
   if (!respuesta.ok) {
-    const detalle = cuerpo?.detail ?? `Error ${respuesta.status}`;
+    const detalle = cuerpo?.detail ?? primerError(cuerpo) ?? `Error ${respuesta.status}`;
     throw new Error(detalle);
   }
   return cuerpo as T;
+}
+
+// Un 400 de validacion trae {campo: "mensaje"}: mostrarlo, no un "Error 400" mudo.
+function primerError(cuerpo: unknown): string | null {
+  if (!cuerpo || typeof cuerpo !== "object") return null;
+  for (const valor of Object.values(cuerpo as Record<string, unknown>)) {
+    if (typeof valor === "string") return valor;
+    if (Array.isArray(valor) && typeof valor[0] === "string") return valor[0];
+  }
+  return null;
 }
 
 export function enviar<T>(ruta: string, datos: unknown): Promise<T> {
@@ -181,4 +207,23 @@ export const api = {
     ),
   vender: (datos: Record<string, unknown>) => enviar<{ id: number; total: string; detalle: { nombre: string; cantidad: number; subtotal: string }[] }>("/api/ventas/", datos),
   movimiento: (datos: Record<string, unknown>) => enviar<Movimiento>("/api/movimientos/", datos),
+  conteoHoja: (q?: string) =>
+    pedir<{ filas: FilaConteo[] }>(`/api/conteo/${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  contar: (datos: {
+    producto: number;
+    contado: number;
+    esperado: number;
+    estado?: string;
+    motivo?: string;
+  }) =>
+    enviar<{
+      esperado: number;
+      contado: number;
+      ajuste: number;
+      // Un renglon por estado tocado: un faltante sale de varias pilas a la vez.
+      ajustes: { estado: string; cantidad: number; movimiento: number }[];
+    }>("/api/conteo/", datos),
+  ventasPendientes: () => pedir<{ ventas: VentaPendiente[] }>("/api/ventas/pendientes/"),
+  entregarVenta: (id: number) =>
+    enviar<{ venta: number; lineas: number }>(`/api/ventas/${id}/entregar/`, {}),
 };

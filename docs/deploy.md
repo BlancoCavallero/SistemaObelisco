@@ -155,3 +155,14 @@ verifica que lo desplegado es lo que se etiqueto.
   deploy lo va a estrenar el dueno del repositorio.
 - **La restauracion del backup nunca se probo.** Un backup sin restaurar es una
   esperanza. Hay que hacerlo una vez, a mano, antes de confiar en el.
+
+## Antes del primer conteo
+
+El conteo compara lo que hay en el deposito contra `stock + vendidas sin entregar`. La
+primera vez que se cuente, revisar:
+
+1. **Ventas confirmadas antes de la version que agrego `entregada`**: se migran como
+   entregadas. Si alguna de esas ventas no habia salido del deposito, marcarla a mano en
+   la lista de entregas antes de contar, o el conteo va a sobrar unidades.
+2. **Cargar lo que hay** con la pantalla de recepcion (entrada por inventario inicial),
+   aunque sea de a lotes: el conteo corrige diferencias, no adivina el stock inicial.

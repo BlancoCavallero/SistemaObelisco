@@ -71,6 +71,7 @@ class LineaVenta(models.Model):
     )
     cantidad = models.PositiveSmallIntegerField()
     precio_unitario = models.DecimalField(max_digits=14, decimal_places=2)
+    entregada = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["id"]

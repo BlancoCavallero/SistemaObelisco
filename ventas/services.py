@@ -7,10 +7,11 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from catalogo.models import Producto
 from core.models import Parametro
 from inventario.models import Movimiento, TipoMovimiento
 from inventario.stock import stock_de
-from ventas.models import CuentaMovimiento
+from ventas.models import CuentaMovimiento, LineaVenta
 
 
 def _descuento(medio_pago, fecha):
@@ -136,3 +137,39 @@ def registrar_pago(cliente, monto, usuario, motivo=""):
     return CuentaMovimiento.objects.create(
         cliente=cliente, tipo="pago", monto=monto, usuario=usuario, motivo=motivo
     )
+
+
+def unidades_sin_entregar():
+    """Unidades ya vendidas que siguen fisicamente en el deposito, por producto.
+
+    La venta descuenta cuando se confirma (D-07); la mercaderia sale cuando se marca la
+    entrega. Hasta entonces el ledger dice "disponible" y el piso dice "esta aca": el
+    conteo tiene que comparar contra el piso, no contra lo disponible, o convierte el
+    conteo en stock vendible que ya esta vendido.
+    """
+    return {
+        fila["producto"]: fila["total"]
+        for fila in LineaVenta.objects.filter(venta__confirmada=True, entregada=False)
+        .values("producto")
+        .annotate(total=Sum("cantidad"))
+        # El Meta.ordering de LineaVenta no puede decidir el GROUP BY: se limpia para que
+        # el agregado sea por producto y no por linea. Medido: hoy ya agrupa bien, pero no
+        # se deja al azar de la version de Django.
+        .order_by()
+    }
+
+
+@transaction.atomic
+def marcar_entrega(venta):
+    """La entrega es logistica: no toca el ledger. Devuelve cuantas lineas cerro.
+
+    Toma el lock del producto, el mismo que usa el conteo para leer las pendientes: sin el,
+    una entrega que commitea en el medio del conteo deja al conteo con pendientes viejas y
+    el 409 no las ve.
+    """
+    if not venta.confirmada:
+        raise ValueError("Una venta sin confirmar no se entrega.")
+
+    ids = sorted(set(venta.lineas.values_list("producto_id", flat=True)))
+    list(Producto.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+    return venta.lineas.filter(entregada=False).update(entregada=True)

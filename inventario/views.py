@@ -1,18 +1,21 @@
 """Warehouse endpoints: register movements and read derived stock."""
 
+import re
 import uuid
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalogo.models import Producto
+from ventas.services import unidades_sin_entregar
 
 from .models import Almacen, EstadoArticulo, Movimiento, Posicion, TipoMovimiento
 from .serializers import (
     ArmarSerializer,
+    ConteoSerializer,
     MovimientoSerializer,
     TransferirSerializer,
 )
@@ -110,6 +113,157 @@ class TransferirView(APIView):
 
         return Response(
             {"referencia": referencia, "transferido": datos["cantidad"]},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ConteoView(APIView):
+    """The count sheet, and the adjustment a difference produces.
+
+    Counting is not a campaign with a closing ceremony (D-07): the operator compares what
+    is there against what the ledger says, and only a difference leaves a row. A count
+    that matches writes nothing, so the ledger does not fill with noise.
+
+    The sheet lists every active product, including the ones with no movements. Hiding
+    those would leave the counter with two physical chairs and nowhere to write them.
+    """
+
+    def get(self, request):
+        queryset = Producto.objects.select_related("tipo__categoria").filter(activo=True)
+        termino = (request.query_params.get("q") or "").strip()
+        for token in termino.split():
+            por_id = _filtro_por_id(token)
+            if por_id is not None:
+                queryset = queryset.filter(por_id)
+            else:
+                queryset = queryset.filter(
+                    Q(tipo__nombre__icontains=token)
+                    | Q(color__icontains=token)
+                    | Q(modelo__icontains=token)
+                )
+
+        por_producto = {}
+        for fila in (
+            Movimiento.objects.values("producto", "estado")
+            .annotate(total=Sum("cantidad"))
+            .order_by()
+        ):
+            por_producto.setdefault(fila["producto"], {})[fila["estado"]] = fila["total"]
+
+        # Lo vendido y no entregado sigue en el deposito: el que cuenta lo ve. Si la hoja
+        # no lo muestra, encuentra mercaderia "de mas" y el ajuste inventa stock vendible.
+        sin_entregar = unidades_sin_entregar()
+
+        filas = []
+        for producto in queryset:
+            desglose = por_producto.get(producto.pk, {})
+            pendientes = sin_entregar.get(producto.pk, 0)
+            filas.append(
+                {
+                    "producto": producto.pk,
+                    "id_visible": producto.id_visible,
+                    "nombre": producto.nombre,
+                    "esperado": sum(desglose.values()) + pendientes,
+                    "en_caja": desglose.get(EstadoArticulo.EN_CAJA, 0),
+                    "listo": desglose.get(EstadoArticulo.LISTO, 0),
+                    "vendidas_sin_entregar": pendientes,
+                }
+            )
+        return Response({"filas": filas})
+
+    def post(self, request):
+        serializer = ConteoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        datos = serializer.validated_data
+
+        with transaction.atomic():
+            producto = Producto.objects.select_for_update().get(pk=datos["producto"].pk)
+            por_estado = {
+                fila["estado"]: fila["total"]
+                for fila in producto.movimientos.values("estado").annotate(total=Sum("cantidad"))
+            }
+            esperado = sum(por_estado.values()) + unidades_sin_entregar().get(producto.pk, 0)
+
+            # The operator sends the number they saw. If the ledger moved while they walked
+            # the depot, turning that race into an adjustment invents stock: stop here.
+            if esperado != datos["esperado"]:
+                return Response(
+                    {
+                        "detail": "El stock cambio desde que abriste la hoja: mira el numero.",
+                        "esperado": esperado,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            diferencia = datos["contado"] - esperado
+            if diferencia == 0:
+                return Response(
+                    {"esperado": esperado, "contado": datos["contado"], "ajuste": 0, "ajustes": []},
+                    status=status.HTTP_200_OK,
+                )
+
+            con_stock = [clave for clave, total in por_estado.items() if total > 0]
+            if diferencia > 0:
+                # Lo que sobra no deja ningun estado en negativo: va a uno solo.
+                elegido = datos.get("estado") or ""
+                if not elegido and len(con_stock) > 1:
+                    # Picking one for the operator invents which pile grew.
+                    return Response(
+                        {"estado": "El stock esta repartido: decí a cual va lo que sobra."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                estado = elegido or (con_stock[0] if con_stock else EstadoArticulo.LISTO)
+                cambios = [(estado, diferencia)]
+            else:
+                if datos.get("estado"):
+                    # Elegir una pila deja la otra mintiendo. El estado es para lo que
+                    # sobra; lo que falta se descuenta de donde hay stock.
+                    return Response(
+                        {
+                            "estado": (
+                                "Lo que falta no va a un estado: se descuenta de donde "
+                                "hay stock."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                cambios = _repartir_faltante(por_estado, -diferencia)
+                if cambios is None:
+                    # Lo que falta esta vendido y sigue en el deposito: hay que entregarlo
+                    # antes de descontar, o el ajuste resta mercaderia que todavia esta ahi.
+                    pendientes = unidades_sin_entregar().get(producto.pk, 0)
+                    return Response(
+                        {
+                            "detail": (
+                                f"Al deposito no le alcanza para absorber {-diferencia}: hay "
+                                f"{pendientes} vendidas sin entregar. Entregalas antes de ajustar."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            motivo = (datos.get("motivo") or "").strip()
+            if diferencia < 0 and not motivo:
+                return Response(
+                    {"motivo": "Un faltante necesita motivo: es lo que despues explica el numero."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            ajustes = []
+            for estado, cantidad in cambios:
+                fila = Movimiento.objects.create(
+                    producto=producto,
+                    cantidad=cantidad,
+                    tipo=TipoMovimiento.AJUSTE,
+                    estado=estado,
+                    motivo=motivo or "Diferencia de conteo",
+                    usuario=request.user,
+                )
+                ajustes.append({"estado": estado, "cantidad": cantidad, "movimiento": fila.pk})
+
+        return Response(
+            {"esperado": esperado, "contado": datos["contado"], "ajuste": diferencia,
+             "ajustes": ajustes},
             status=status.HTTP_201_CREATED,
         )
 
@@ -275,5 +429,36 @@ class StockPorUbicacionView(APIView):
         return Response({"almacenes": almacenes, "filas": filas})
 
 
+def _repartir_faltante(por_estado, faltante):
+    """Take the shortage from the piles that have stock, biggest first, never below zero.
+
+    Ties break by state name so the plan is deterministic. `None` means the ledger cannot
+    absorb it: what is missing are the units sold and not yet delivered.
+    """
+    restante = faltante
+    cambios = []
+    for estado, total in sorted(por_estado.items(), key=lambda fila: (-fila[1], fila[0])):
+        if restante == 0:
+            break
+        if total > 0:
+            toma = min(total, restante)
+            cambios.append((estado, -toma))
+            restante -= toma
+    return cambios if restante == 0 else None
+
+
 def _posiciones_con_ruta():
     return Posicion.objects.select_related("sector__almacen")
+
+
+_ID_VISIBLE = re.compile(r"^(?P<prefijo>[A-Za-z]{3})-(?P<numero>\d+)$")
+
+
+def _filtro_por_id(token):
+    """Match the label glued to the article: `MUE-0007` or just `7`."""
+    coincidencia = _ID_VISIBLE.match(token)
+    if coincidencia:
+        return Q(pk=int(coincidencia.group("numero")))
+    if token.isdigit():
+        return Q(pk=int(token))
+    return None

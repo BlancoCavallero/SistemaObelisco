@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Perfil } from "./api";
 import CatalogoPagina from "./pages/Catalogo";
 import Login from "./pages/Login";
+import Conteo from "./pages/Conteo";
 import Cuentas from "./pages/Cuentas";
 import Deposito from "./pages/Deposito";
 import Inicio from "./pages/Inicio";
@@ -78,6 +79,12 @@ export default function App() {
     if (verificando) return <p className="contenedor estrecho estado">Verificando sesión…</p>;
     if (!perfil) return <Login onEntrar={setPerfil} />;
     return <Recepcion perfil={perfil} onSalir={salir} />;
+  }
+
+  if (ruta.startsWith("/conteo")) {
+    if (verificando) return <p className="contenedor estrecho estado">Verificando sesión…</p>;
+    if (!perfil) return <Login onEntrar={setPerfil} />;
+    return <Conteo perfil={perfil} onSalir={salir} />;
   }
 
   if (ruta.startsWith("/catalogo")) {
