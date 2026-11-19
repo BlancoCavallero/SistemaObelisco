@@ -3,14 +3,16 @@
 from decimal import Decimal, InvalidOperation
 
 from django.db.models import Sum
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Cliente, CuentaMovimiento, Venta
 from .serializers import ClienteSerializer, VentaSerializer
-from .services import registrar_pago, saldo_de, vencido_de
+from .services import marcar_entrega, registrar_pago, saldo_de, vencido_de
 
 
 class VentaListCreateView(generics.ListCreateAPIView):
@@ -82,3 +84,47 @@ class ClienteViewSet(viewsets.ModelViewSet):
                     {"cliente": ClienteSerializer(cliente).data, "vencido": f"{vencido:.2f}"}
                 )
         return Response(filas)
+
+
+def _pendiente(venta):
+    return {
+        "id": venta.pk,
+        "fecha": venta.fecha,
+        "cliente": venta.cliente.nombre if venta.cliente_id else "",
+        "ciudad": venta.cliente.ciudad if venta.cliente_id else "",
+        "lineas": [
+            {
+                "producto": linea.producto_id,
+                "nombre": linea.producto.nombre,
+                "cantidad": linea.cantidad,
+            }
+            for linea in venta.lineas.all()
+            if not linea.entregada
+        ],
+    }
+
+
+class VentasPendientesView(APIView):
+    """Ventas confirmadas con mercaderia que todavia no salio del deposito."""
+
+    def get(self, _request):
+        ventas = (
+            Venta.objects.filter(confirmada=True, lineas__entregada=False)
+            .distinct()
+            .select_related("cliente")
+            .prefetch_related("lineas__producto")
+            .order_by("fecha", "id")
+        )
+        return Response({"ventas": [_pendiente(venta) for venta in ventas]})
+
+
+class EntregarVentaView(APIView):
+    """Marcar la entrega: cierra lineas y no toca el stock (D-07)."""
+
+    def post(self, _request, pk):
+        venta = get_object_or_404(Venta, pk=pk)
+        try:
+            cerradas = marcar_entrega(venta)
+        except ValueError as error:
+            return Response({"detail": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"venta": venta.pk, "lineas": cerradas})

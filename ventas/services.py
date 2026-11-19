@@ -10,7 +10,7 @@ from django.utils import timezone
 from core.models import Parametro
 from inventario.models import Movimiento, TipoMovimiento
 from inventario.stock import stock_de
-from ventas.models import CuentaMovimiento
+from ventas.models import CuentaMovimiento, LineaVenta
 
 
 def _descuento(medio_pago, fecha):
@@ -136,3 +136,26 @@ def registrar_pago(cliente, monto, usuario, motivo=""):
     return CuentaMovimiento.objects.create(
         cliente=cliente, tipo="pago", monto=monto, usuario=usuario, motivo=motivo
     )
+
+
+def unidades_sin_entregar():
+    """Unidades ya vendidas que siguen fisicamente en el deposito, por producto.
+
+    La venta descuenta cuando se confirma (D-07); la mercaderia sale cuando se marca la
+    entrega. Hasta entonces el ledger dice "disponible" y el piso dice "esta aca": el
+    conteo tiene que comparar contra el piso, no contra lo disponible, o convierte el
+    conteo en stock vendible que ya esta vendido.
+    """
+    return {
+        fila["producto"]: fila["total"]
+        for fila in LineaVenta.objects.filter(venta__confirmada=True, entregada=False)
+        .values("producto")
+        .annotate(total=Sum("cantidad"))
+    }
+
+
+def marcar_entrega(venta):
+    """La entrega es logistica: no toca el ledger. Devuelve cuantas lineas cerro."""
+    if not venta.confirmada:
+        raise ValueError("Una venta sin confirmar no se entrega.")
+    return venta.lineas.filter(entregada=False).update(entregada=True)

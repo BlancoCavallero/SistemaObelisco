@@ -294,3 +294,71 @@ def test_el_ajuste_con_motivo_sigue_funcionando(cliente, usuario, producto):
 
     assert respuesta.status_code == 201
     assert Movimiento.objects.get().motivo == "conteo fisico"
+
+
+# --- lo vendido que todavia esta en el deposito -------------------------------
+
+
+@pytest.fixture
+def con_venta_sin_entregar(cliente, usuario, producto):
+    """Cinco entradas y una venta de dos confirmada: el piso tiene 5, el ledger dice 3."""
+    import datetime as dt
+    from decimal import Decimal
+
+    from catalogo.models import PrecioLista
+
+    PrecioLista.objects.create(
+        producto=producto, valor=Decimal("10000"), vigente_desde=dt.date(2026, 1, 1)
+    )
+    _mov(producto, usuario, 5)
+    respuesta = cliente.post(
+        "/api/ventas/",
+        {"medio_pago": "efectivo", "lineas": [{"producto": producto.pk, "cantidad": 2}]},
+        format="json",
+    )
+    assert respuesta.status_code == 201, respuesta.data
+    return producto
+
+
+def test_la_hoja_cuenta_lo_vendido_que_sigue_en_el_deposito(cliente, con_venta_sin_entregar):
+    """D-07: lo vendido no es vendible, pero sigue fisicamente en el deposito."""
+    fila = next(
+        f
+        for f in cliente.get("/api/conteo/").data["filas"]
+        if f["producto"] == con_venta_sin_entregar.pk
+    )
+
+    assert fila["esperado"] == 5
+    assert fila["vendidas_sin_entregar"] == 2
+    assert fila["listo"] == 3
+
+
+def test_contar_lo_que_hay_con_una_venta_sin_entregar_no_inventa_stock(
+    cliente, con_venta_sin_entregar
+):
+    """El que cuenta ve 5 y anota 5: no hay diferencia que escribir.
+
+    Sin restar lo vendido, el ajuste sumaba 2 unidades que ya estaban vendidas y se
+    podian volver a vender.
+    """
+    respuesta = _contar(cliente, con_venta_sin_entregar, 5, 5)
+
+    assert respuesta.status_code == 200
+    assert respuesta.data["ajuste"] == 0
+    assert Movimiento.objects.count() == 2
+
+
+def test_al_marcar_la_entrega_la_hoja_deja_de_contar_esas_unidades(
+    cliente, con_venta_sin_entregar
+):
+    venta = cliente.get("/api/ventas/pendientes/").data["ventas"][0]["id"]
+    cliente.post(f"/api/ventas/{venta}/entregar/", {}, format="json")
+
+    fila = next(
+        f
+        for f in cliente.get("/api/conteo/").data["filas"]
+        if f["producto"] == con_venta_sin_entregar.pk
+    )
+
+    assert fila["esperado"] == 3
+    assert fila["vendidas_sin_entregar"] == 0

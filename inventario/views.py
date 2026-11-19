@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalogo.models import Producto
+from ventas.services import unidades_sin_entregar
 
 from .models import Almacen, EstadoArticulo, Movimiento, Posicion, TipoMovimiento
 from .serializers import (
@@ -149,17 +150,23 @@ class ConteoView(APIView):
         ):
             por_producto.setdefault(fila["producto"], {})[fila["estado"]] = fila["total"]
 
+        # Lo vendido y no entregado sigue en el deposito: el que cuenta lo ve. Si la hoja
+        # no lo muestra, encuentra mercaderia "de mas" y el ajuste inventa stock vendible.
+        sin_entregar = unidades_sin_entregar()
+
         filas = []
         for producto in queryset:
             desglose = por_producto.get(producto.pk, {})
+            pendientes = sin_entregar.get(producto.pk, 0)
             filas.append(
                 {
                     "producto": producto.pk,
                     "id_visible": producto.id_visible,
                     "nombre": producto.nombre,
-                    "esperado": sum(desglose.values()),
+                    "esperado": sum(desglose.values()) + pendientes,
                     "en_caja": desglose.get(EstadoArticulo.EN_CAJA, 0),
                     "listo": desglose.get(EstadoArticulo.LISTO, 0),
+                    "vendidas_sin_entregar": pendientes,
                 }
             )
         return Response({"filas": filas})
@@ -175,7 +182,7 @@ class ConteoView(APIView):
                 fila["estado"]: fila["total"]
                 for fila in producto.movimientos.values("estado").annotate(total=Sum("cantidad"))
             }
-            esperado = sum(por_estado.values())
+            esperado = sum(por_estado.values()) + unidades_sin_entregar().get(producto.pk, 0)
 
             # The operator sends the number they saw. If the ledger moved while they walked
             # the depot, turning that race into an adjustment invents stock: stop here.
