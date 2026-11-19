@@ -239,3 +239,15 @@ jobs:
             echo "::error::El servicio responde pero /health/ no esta ok: $version"
             exit 1
           }
+
+      - name: Registrar la URL en el release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          # El log de Actions enmascara la URL del servicio, asi que no queda consultable
+          # desde ahi. El release es el lugar donde vive el link de produccion.
+          url="${{ steps.deploy.outputs.url }}"
+          gh release view "$TAG" --json body --jq .body > notas.md
+          printf '\n**Produccion:** %s\n' "$url" >> notas.md
+          gh release edit "$TAG" --notes-file notas.md
