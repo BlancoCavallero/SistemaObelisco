@@ -152,7 +152,7 @@ sostienen el estado; sin commit, la fila es documentación o no está hecha.
 | R29 | Pedido a medida: medición, plano, presupuesto, margen, confirmación, 15-20 días | S52, S53, S56 | fase 2 (D12) | — |
 | R30 | Proveedores: padrón de 40-50 con canal de contacto, sin órdenes de compra | S57 | hecho | `4e14e65` `dcac8b5` |
 | R31 | Venta con varias líneas (juegos sin precio propio) | S54, A32 | hecho | `d9cfaba` |
-| R32 | Entrega de líneas de venta: marcar `entregada` y descontarla del conteo | D-07, A11 | **pendiente** (bloquea la exactitud del conteo) | — |
+| R32 | Entrega de líneas de venta: marcar `entregada` y descontarla del conteo | D-07, A11 | hecho | `fc45f4b` `a5e3b1e` |
 
 ## Log
 
@@ -231,3 +231,18 @@ conteo de un artículo que se haya vendido.
 Efecto sobre el review: el candidato cambió, así que el lineage `review-e29f4c64df57a036`
 quedó apuntando a un árbol que ya no existe. Después de decidir sobre la autoridad hay que
 abrir un review nuevo sobre el candidato corregido.
+
+**L20 — R32 hecho: la entrega se marca y el conteo la resta (2026-11-19):** `LineaVenta.entregada`
+(migración `0003`), `POST /api/ventas/<id>/entregar/` que cierra las líneas sin tocar el ledger
+(la entrega es logística, D-07) y `GET /api/ventas/pendientes/` para la lista. La hoja de conteo
+ahora espera `ledger + vendidas sin entregar`, que es exactamente lo que hay en el piso, y el
+ajuste compara contra ese número. Se cerró el agujero más grave que había encontrado el revisor:
+contar un artículo vendido ya no crea stock vendible.
+
+Límite de lo implementado, dicho para que no sorprenda: la entrega se marca por **venta
+completa**, no línea por línea. Una venta de tres sillones donde sale uno solo no se puede
+registrar parcial; se cierra cuando sale el último. Si el negocio entrega de a partes, eso es la
+próxima tarea de R32, no un defecto del conteo.
+
+Límite de slice acumulado: 9 commits, ~1150 líneas. R15 y R32 están terminados y verificados;
+lo que falta para publicar es el gate, no el código.
