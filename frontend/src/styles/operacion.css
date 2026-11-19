@@ -196,3 +196,17 @@ code {
   border-radius: 4px;
   padding: 0.1rem 0.3rem;
 }
+
+.casilla {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--tenue);
+}
+
+.casilla input {
+  width: 1.15rem;
+  height: 1.15rem;
+  min-height: 0;
+}

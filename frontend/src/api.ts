@@ -99,7 +99,37 @@ export const api = {
     enviar<{ referencia: string; transferido: number }>("/api/movimientos/transferir/", datos),
   preciosDe: (id: number) =>
     pedir<{ valor: string; vigente_desde: string }[]>(`/api/productos/${id}/precios/`),
-  clientes: () => pedir<{ id: number; nombre: string; ciudad: string; habilitado_cuenta_corriente: boolean }[]>("/api/clientes/"),
+  clientes: () =>
+    pedir<
+      { id: number; nombre: string; ciudad: string; habilitado_cuenta_corriente: boolean }[]
+    >("/api/clientes/"),
+  crearCliente: (datos: {
+    nombre: string;
+    ciudad: string;
+    direccion?: string;
+    telefono?: string;
+    habilitado_cuenta_corriente: boolean;
+  }) => enviar<{ id: number }>("/api/clientes/", datos),
+  cuentaDe: (id: number) =>
+    pedir<{
+      cliente: { id: number; nombre: string; ciudad: string };
+      saldo: string;
+      vencido: string;
+      movimientos: {
+        id: number;
+        tipo: string;
+        monto: string;
+        vencimiento: string | null;
+        motivo: string;
+        fecha: string;
+      }[];
+    }>(`/api/clientes/${id}/cuenta/`),
+  registrarPago: (id: number, monto: string, motivo = "") =>
+    enviar<{ saldo: string }>(`/api/clientes/${id}/cuenta/pagos/`, { monto, motivo }),
+  morosos: () =>
+    pedir<{ cliente: { id: number; nombre: string; ciudad: string }; vencido: string }[]>(
+      "/api/clientes/morosos/",
+    ),
   vender: (datos: Record<string, unknown>) => enviar<{ id: number; total: string; detalle: { nombre: string; cantidad: number; subtotal: string }[] }>("/api/ventas/", datos),
   movimiento: (datos: Record<string, unknown>) => enviar<Movimiento>("/api/movimientos/", datos),
 };
