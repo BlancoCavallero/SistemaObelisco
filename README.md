@@ -90,5 +90,8 @@ hasta que existan las variables de repositorio `DEPLOY_ENABLED=true` y `BACKUP_E
 | `R2_BUCKET` | Bucket donde viven las imagenes y los backups |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Identidad federada de GitHub hacia Google Cloud |
 | `GCP_SERVICE_ACCOUNT` | Cuenta de servicio que despliega en Cloud Run |
+| `DJANGO_SUPERUSER_USERNAME` | Primer administrador: usuario |
+| `DJANGO_SUPERUSER_PASSWORD` | Primer administrador: contrasena inicial |
+| `DJANGO_SUPERUSER_EMAIL` | Primer administrador: email (opcional) |
 
 Variables de repositorio (no secretas): `DEPLOY_ENABLED`, `BACKUP_ENABLED`, `GCP_REGION`.
